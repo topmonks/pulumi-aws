@@ -1,0 +1,26 @@
+{
+  "name": "@topmonks/pulumi-aws",
+  "version": "1.0.0",
+  "description": "Custom AWS Resources for Pulumi",
+  "keywords": [
+    "pulumi",
+    "aws"
+  ],
+  "repository": "https://github.com/topmonks/pulumi-aws.git",
+  "author": "TopMonks <info@topmonks.com>",
+  "license": "EPL 2.0",
+  "pulumi": {
+    "resource": true
+  },
+  "devDependencies": {
+    "@types/node": "^10.12.15",
+    "typescript": "^3.2.2"
+  },
+  "dependencies": {
+    "@pulumi/aws": "^0.16.3",
+    "@pulumi/pulumi": "^0.16.8"
+  },
+  "scripts": {
+    "build": "tsc"
+  }
+}
