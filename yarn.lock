@@ -55,36 +55,19 @@
   resolved "https://registry.yarnpkg.com/@protobufjs/utf8/-/utf8-1.1.0.tgz#a777360b5b39a1a2e5106f8e858f2fd2d060c570"
   integrity sha1-p3c2C1s5oaLlEG+OhY8v0tBgxXA=
 
-"@pulumi/aws@^0.16.3":
-  version "0.16.3"
-  resolved "https://registry.yarnpkg.com/@pulumi/aws/-/aws-0.16.3.tgz#675d07283fba65122246aedea6ce2b0bf12f4fd5"
-  integrity sha512-IbW1nvNdI0jhPujUX6vjk0RuY69EEfPmyxvljMv647ME554Win5ktQZdLx9V7ReDV/GKAmBkrUFlOnhLoq9gKg==
+"@pulumi/aws@^0.18.21":
+  version "0.18.21"
+  resolved "https://registry.yarnpkg.com/@pulumi/aws/-/aws-0.18.21.tgz#a4dc9b1c5ea0d89217e5ff9f6c4c409247b40ccd"
+  integrity sha512-sDez54XtH4WsmI49kaCInwodLnScffW2bu8hIt9YdUBuEBeF4H901txysEW4utee7Dmp7C8iWCi/sJRa7dz2xw==
   dependencies:
-    "@pulumi/pulumi" "^0.16.4"
+    "@pulumi/pulumi" "^0.17.20"
     aws-sdk "^2.0.0"
     builtin-modules "3.0.0"
     mime "^2.0.0"
     read-package-tree "^5.2.1"
     resolve "^1.7.1"
 
-"@pulumi/pulumi@^0.16.4":
-  version "0.16.8"
-  resolved "https://registry.yarnpkg.com/@pulumi/pulumi/-/pulumi-0.16.8.tgz#d9a899a2b9b1e29806e9829cce023617bc9f4836"
-  integrity sha512-Q0POq22jmXd3ZXCYrWtgJn90m49ZNigro8e/7aHcRASLehDadUTaRLqKe69HYUc2ry9xnSFl05m0XguulWh2Hg==
-  dependencies:
-    google-protobuf "^3.5.0"
-    grpc "^1.12.2"
-    minimist "^1.2.0"
-    normalize-package-data "^2.4.0"
-    protobufjs "^6.8.6"
-    read-package-tree "^5.2.1"
-    require-from-string "^2.0.1"
-    source-map-support "^0.4.16"
-    ts-node "^7.0.0"
-    typescript "^3.0.0"
-    upath "^1.1.0"
-
-"@pulumi/pulumi@^0.17.22":
+"@pulumi/pulumi@^0.17.20", "@pulumi/pulumi@^0.17.22":
   version "0.17.22"
   resolved "https://registry.yarnpkg.com/@pulumi/pulumi/-/pulumi-0.17.22.tgz#fcd598fb00a205313b292268fb9c25335a56baaa"
   integrity sha512-sfKLUAxaU9xYsDLDu3AKW7Mqx02nMlUeWXIUsrGDY+P4hIYmAOoPU2yFRRB8/7mzmvZQgIMSkwBSZfpFBaFA2g==
@@ -384,7 +367,7 @@ graceful-fs@^4.1.2:
   resolved "https://registry.yarnpkg.com/graceful-fs/-/graceful-fs-4.1.15.tgz#ffb703e1066e8a0eeaa4c8b80ba9253eeefbfb00"
   integrity sha512-6uHUhOPEBgQ24HM+r6b/QwWfZq+yiFcipKFrOFiBEnWdy5sdzYoi+pJeQaPI5qOLRFqWmAXUPQNsielzdLoecA==
 
-grpc@^1.12.2, grpc@^1.20.2:
+grpc@^1.20.2:
   version "1.22.2"
   resolved "https://registry.yarnpkg.com/grpc/-/grpc-1.22.2.tgz#1a60c728c692a93a85e855e35c2e0216654f0198"
   integrity sha512-gaK59oAA5/mlOIn+hQO5JROPoAzsaGRpEMcrAayW5WGETS8QScpBoQ+XBxEWAAF0kbeGIELuGRCVEObKS1SLmw==
