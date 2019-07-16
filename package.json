@@ -13,7 +13,7 @@
     "resource": true
   },
   "devDependencies": {
-    "@types/node": "^12.6.2",
+    "@types/node": "^12.6.3",
     "typescript": "^3.5.3"
   },
   "dependencies": {
