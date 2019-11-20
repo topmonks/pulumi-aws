@@ -17,7 +17,7 @@
     "typescript": "^3.5.3"
   },
   "dependencies": {
-    "@pulumi/aws": "^0.18.21",
+    "@pulumi/aws": "^1.10.0",
     "@pulumi/pulumi": "^0.17.22"
   },
   "scripts": {
