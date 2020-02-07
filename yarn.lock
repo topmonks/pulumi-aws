@@ -67,10 +67,10 @@
     read-package-tree "^5.2.1"
     resolve "^1.7.1"
 
-"@pulumi/pulumi@^1.0.0", "@pulumi/pulumi@^1.8.1":
-  version "1.8.1"
-  resolved "https://registry.yarnpkg.com/@pulumi/pulumi/-/pulumi-1.8.1.tgz#02d1a2b98e1c873792868d378360a569454b6c01"
-  integrity sha512-YECXh3TRCl21QYpvUrzGDGBVqZBr3V053x1chXnt/7+FgwxM5M1cpH3T7kQX44+z7crvIqvQ7FbngNpgCHKa1Q==
+"@pulumi/pulumi@^1.0.0", "@pulumi/pulumi@^1.10.1":
+  version "1.10.1"
+  resolved "https://registry.yarnpkg.com/@pulumi/pulumi/-/pulumi-1.10.1.tgz#d2834b02ed8aaf0ecdb1106608fbab1130aad3e0"
+  integrity sha512-3jMVRHvg4Ip44wGmRGHjz5c3Bjkew4tJB2PMsCVK3pfNgyQYLT6iUGOjnccnFui4bjKUq3hRrABlyCouKecpAQ==
   dependencies:
     "@pulumi/query" "^0.3.0"
     deasync "^0.1.15"
@@ -83,7 +83,7 @@
     require-from-string "^2.0.1"
     semver "^6.1.0"
     source-map-support "^0.4.16"
-    ts-node "^8.5.4"
+    ts-node "8.5.4"
     typescript "~3.7.3"
     upath "^1.1.0"
 
@@ -1097,7 +1097,7 @@ tar@^4.4.2:
     safe-buffer "^5.1.2"
     yallist "^3.0.3"
 
-ts-node@^8.5.4:
+ts-node@8.5.4:
   version "8.5.4"
   resolved "https://registry.yarnpkg.com/ts-node/-/ts-node-8.5.4.tgz#a152add11fa19c221d0b48962c210cf467262ab2"
   integrity sha512-izbVCRV68EasEPQ8MSIGBNK9dc/4sYJJKYA+IarMQct1RtEot6Xp0bXuClsbUSnKpg50ho+aOAx8en5c+y4OFw==
