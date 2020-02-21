@@ -14,7 +14,7 @@
   },
   "devDependencies": {
     "@types/node": "^12.6.2",
-    "typescript": "^3.5.3"
+    "typescript": "^3.8.2"
   },
   "dependencies": {
     "@pulumi/aws": "^1.17.0",
