@@ -18,7 +18,7 @@
   },
   "dependencies": {
     "@pulumi/aws": "^1.17.0",
-    "@pulumi/pulumi": "^1.8.1"
+    "@pulumi/pulumi": "^2.5.0"
   },
   "scripts": {
     "build": "tsc"
