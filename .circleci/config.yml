@@ -13,14 +13,12 @@ jobs:
           pkg-manager: yarn
       - run:
           name: Build package
-          command: |
-            yarn install-peers
-            yarn build
+          command: yarn build
       - run:
           name: Create package
           command: |
             cp package.json bin/
-            npm publish bin --access public
+            yarn publish bin --access public
 
 workflows:
   release:
