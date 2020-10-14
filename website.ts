@@ -90,8 +90,8 @@ function createCloudFront(
   contentBucket: aws.s3.Bucket,
   isPwa: boolean | undefined,
   assetsPaths?: string[],
-  assetsCachingLambdaArn?: string,
-  securityHeadersLambdaArn?: string
+  assetsCachingLambdaArn?: string | pulumi.Output<string>,
+  securityHeadersLambdaArn?: string | pulumi.Output<string>
 ) {
   const acmCertificate = getCertificate(domain);
   const customErrorResponses: pulumi.Input<
@@ -428,7 +428,7 @@ export class Website extends pulumi.ComponentResource {
   }
 
   get cloudFrontId(): pulumi.Output<string> | undefined {
-    return this.cdn && this.cdn.id;
+    return this.cdn?.id;
   }
 
   /**
@@ -537,8 +537,8 @@ interface WebsiteSettings {
   dns?: DisableSetting;
   "lh-token"?: string;
   assetsPaths?: string[];
-  assetsCachingLambdaArn?: string;
-  securityHeadersLambdaArn?: string;
+  assetsCachingLambdaArn?: string | pulumi.Output<string>;
+  securityHeadersLambdaArn?: string | pulumi.Output<string>;
 }
 
 interface RedirectWebsiteSettings {
