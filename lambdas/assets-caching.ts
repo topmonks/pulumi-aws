@@ -14,7 +14,7 @@ async function implementation(event: any, context: aws.lambda.Context) {
   return response;
 }
 
-export class AssetsCachingLambda extends pulumi.CustomResource {
+export class AssetsCachingLambda extends pulumi.ComponentResource {
   private lambda: aws.lambda.Function;
 
   get arn() {

@@ -32,7 +32,7 @@ async function implementation(event: any, context: aws.lambda.Context) {
   return response;
 }
 
-export class SecurityHeadersLambda extends pulumi.CustomResource {
+export class SecurityHeadersLambda extends pulumi.ComponentResource {
   private lambda: aws.lambda.Function;
 
   get arn() {
