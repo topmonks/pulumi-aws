@@ -13,7 +13,9 @@ jobs:
           pkg-manager: yarn
       - run:
           name: Build package
-          command: yarn build
+          command: |
+            yarn install-peers
+            yarn build
       - run:
           name: Create package
           command: |
