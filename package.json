@@ -9,12 +9,13 @@
   "repository": "https://github.com/topmonks/pulumi-aws.git",
   "author": "TopMonks <info@topmonks.com>",
   "license": "EPL-2.0",
-  "dependencies": {
-    "@pulumi/aws": "^3.6.1",
-    "@pulumi/pulumi": "^2.11.2"
+  "peerDependencies": {
+    "@pulumi/aws": "^1.0.0 || ^2.0.0 || ^3.0.0",
+    "@pulumi/pulumi": "^1.9.1 || ^2.0.0"
   },
   "devDependencies": {
     "@types/node": "^14.11.8",
+    "install-peers-cli": "^2.2.0",
     "prettier": "^2.1.2",
     "typescript": "^4.0.3"
   },
@@ -22,6 +23,7 @@
     "resource": true
   },
   "scripts": {
-    "build": "tsc"
+    "build": "tsc",
+    "install-peers": "install-peers"
   }
 }
