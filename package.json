@@ -12,7 +12,7 @@
   "author": "TopMonks <info@topmonks.com>",
   "license": "EPL-2.0",
   "dependencies": {
-    "@pulumi/aws": "^3.6.1",
+    "@pulumi/aws": "^3.7.0",
     "@pulumi/pulumi": "^2.11.2"
   },
   "devDependencies": {
