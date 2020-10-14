@@ -2,8 +2,6 @@
   "name": "@topmonks/pulumi-aws",
   "version": "1.0.0",
   "description": "Custom AWS Resources for Pulumi",
-  "module": "bin/index.js",
-  "types": "bin/",
   "keywords": [
     "pulumi",
     "aws"
