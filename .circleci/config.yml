@@ -23,5 +23,5 @@ jobs:
 workflows:
   release:
     jobs:
-      - build
-  version: 2
+      - build:
+          context: org-global
