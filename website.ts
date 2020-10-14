@@ -2,6 +2,15 @@ import * as aws from "@pulumi/aws";
 import * as pulumi from "@pulumi/pulumi";
 import * as inputs from "@pulumi/aws/types/input";
 
+const websiteConfig = new pulumi.Config("topmonks_website");
+const assetsPaths: string[] = JSON.parse(
+  websiteConfig.get("assets_paths") ?? "[]"
+);
+const assetsCachingLambdaArn =
+  websiteConfig.get("assets_caching_lambda_arn") ?? "";
+const securityHeadersLambdaArn =
+  websiteConfig.get("security_headers_lambda_arn") ?? "";
+
 /**
  * Creates S3 bucket with static website hosting enabled
  * @param parent {pulumi.ComponentResource} parent component
@@ -10,23 +19,23 @@ import * as inputs from "@pulumi/aws/types/input";
  * @returns {aws.s3.Bucket}
  */
 function createBucket(
-    parent: pulumi.ComponentResource,
-    domain: string,
-    settings: aws.s3.BucketArgs
+  parent: pulumi.ComponentResource,
+  domain: string,
+  settings: aws.s3.BucketArgs
 ) {
   const website = settings.website || {
     indexDocument: "index.html",
     errorDocument: "404.html"
   };
   return new aws.s3.Bucket(
-      `${domain}/bucket`,
-      {
-        bucket: domain,
-        acl: "public-read",
-        website,
-        forceDestroy: true
-      },
-      { parent }
+    `${domain}/bucket`,
+    {
+      bucket: domain,
+      acl: "public-read",
+      website,
+      forceDestroy: true
+    },
+    { parent }
   );
 }
 
@@ -38,30 +47,30 @@ function createBucket(
  * @returns {aws.s3.BucketPolicy}
  */
 function createBucketPolicy(
-    parent: pulumi.ComponentResource,
-    domain: string,
-    bucket: aws.s3.Bucket
+  parent: pulumi.ComponentResource,
+  domain: string,
+  bucket: aws.s3.Bucket
 ) {
   return new aws.s3.BucketPolicy(
-      `${domain}/bucket-policy`,
-      {
-        bucket: bucket.bucket,
-        policy: JSON.stringify({
-          Version: "2012-10-17",
-          Statement: [
-            {
-              Sid: "1",
-              Effect: "Allow",
-              Principal: {
-                AWS: "*"
-              },
-              Action: "s3:GetObject",
-              Resource: `arn:aws:s3:::${domain}/*`
-            }
-          ]
-        })
-      },
-      { parent }
+    `${domain}/bucket-policy`,
+    {
+      bucket: bucket.bucket,
+      policy: JSON.stringify({
+        Version: "2012-10-17",
+        Statement: [
+          {
+            Sid: "1",
+            Effect: "Allow",
+            Principal: {
+              AWS: "*"
+            },
+            Action: "s3:GetObject",
+            Resource: `arn:aws:s3:::${domain}/*`
+          }
+        ]
+      })
+    },
+    { parent }
   );
 }
 
@@ -70,19 +79,19 @@ function createBucketPolicy(
  * @param parent {pulumi.ComponentResource} parent component
  * @param domain {string} website domain name
  * @param contentBucket {aws.s3.Bucket}
- * @param isSPA {boolean}
+ * @param isPwa {boolean}
  * @returns {aws.cloudfront.Distribution}
  */
 function createCloudFront(
-    parent: pulumi.ComponentResource,
-    domain: string,
-    contentBucket: aws.s3.Bucket,
-    isPwa: boolean | undefined
+  parent: pulumi.ComponentResource,
+  domain: string,
+  contentBucket: aws.s3.Bucket,
+  isPwa: boolean | undefined
 ) {
   const acmCertificate = getCertificate(domain);
   const customErrorResponses: pulumi.Input<
-      inputs.cloudfront.DistributionCustomErrorResponse
-      >[] = [];
+    inputs.cloudfront.DistributionCustomErrorResponse
+  >[] = [];
   if (isPwa)
     customErrorResponses.push({
       errorCode: 404,
@@ -90,94 +99,90 @@ function createCloudFront(
       responsePagePath: "/index.html"
     });
   return new aws.cloudfront.Distribution(
-      `${domain}/cdn-distribution`,
-      {
-        enabled: true,
-        aliases: [domain],
-        origins: [
+    `${domain}/cdn-distribution`,
+    {
+      enabled: true,
+      aliases: [domain],
+      origins: [
+        {
+          originId: contentBucket.arn,
+          domainName: contentBucket.websiteEndpoint,
+          customOriginConfig: {
+            // Amazon S3 doesn't support HTTPS connections when using an S3 bucket configured as a website endpoint.
+            // https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/distribution-web-values-specify.html#DownloadDistValuesOriginProtocolPolicy
+            originProtocolPolicy: "http-only",
+            httpPort: 80,
+            httpsPort: 443,
+            originSslProtocols: ["TLSv1.2"]
+          }
+        }
+      ],
+      customErrorResponses,
+      defaultRootObject: "index.html",
+      defaultCacheBehavior: {
+        targetOriginId: contentBucket.arn,
+        viewerProtocolPolicy: "redirect-to-https",
+        allowedMethods: ["GET", "HEAD"],
+        cachedMethods: ["GET", "HEAD"],
+        forwardedValues: {
+          cookies: { forward: "none" },
+          queryString: false
+        },
+        minTtl: 0,
+        defaultTtl: 86400,
+        maxTtl: 31536000,
+        // enable gzip
+        compress: true,
+        lambdaFunctionAssociations: [
+          // add lambda edge with security headers for A+ SSL Grade
           {
-            originId: contentBucket.arn,
-            domainName: contentBucket.websiteEndpoint,
-            customOriginConfig: {
-              // Amazon S3 doesn't support HTTPS connections when using an S3 bucket configured as a website endpoint.
-              // https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/distribution-web-values-specify.html#DownloadDistValuesOriginProtocolPolicy
-              originProtocolPolicy: "http-only",
-              httpPort: 80,
-              httpsPort: 443,
-              originSslProtocols: ["TLSv1.2"]
-            }
+            eventType: "viewer-response",
+            lambdaArn: securityHeadersLambdaArn
           }
-        ],
-        customErrorResponses,
-        defaultRootObject: "index.html",
-        defaultCacheBehavior: {
-          targetOriginId: contentBucket.arn,
-          viewerProtocolPolicy: "redirect-to-https",
-          allowedMethods: ["GET", "HEAD"],
-          cachedMethods: ["GET", "HEAD"],
-          forwardedValues: {
-            cookies: { forward: "none" },
-            queryString: false
-          },
-          minTtl: 0,
-          defaultTtl: 86400,
-          maxTtl: 31536000,
-          // enable gzip
-          compress: true,
-          lambdaFunctionAssociations: [
-            // add lambda edge with security headers for A+ SSL Grade
-            {
-              eventType: "viewer-response",
-              lambdaArn:
-                  "arn:aws:lambda:us-east-1:661884430919:function:SecurityHeaders:7"
-            }
-          ]
-        },
-        orderedCacheBehaviors: [
-          {
-            allowedMethods: ["GET", "HEAD", "OPTIONS"],
-            cachedMethods: ["GET", "HEAD", "OPTIONS"],
-            compress: true,
-            defaultTtl: 31536000,
-            forwardedValues: {
-              cookies: {
-                forward: "none"
-              },
-              headers: ["Origin"],
-              queryString: false
-            },
-            maxTtl: 31536000,
-            minTtl: 31536000,
-            pathPattern: "/assets/*",
-            targetOriginId: contentBucket.arn,
-            viewerProtocolPolicy: "redirect-to-https",
-            lambdaFunctionAssociations: [
-              // add lambda edge with cache headers for immutable assets
-              {
-                eventType: "viewer-response",
-                lambdaArn:
-                    "arn:aws:lambda:us-east-1:661884430919:function:CacheHeaders:2"
-              }
-            ]
-          }
-        ],
-        priceClass: "PriceClass_100",
-        restrictions: {
-          geoRestriction: {
-            restrictionType: "none"
-          }
-        },
-        viewerCertificate: {
-          acmCertificateArn: acmCertificate.apply(x => x.arn),
-          sslSupportMethod: "sni-only",
-          minimumProtocolVersion: "TLSv1.2_2019"
-        },
-        isIpv6Enabled: true
+        ]
       },
-      {
-        parent,
-        dependsOn: [contentBucket]
-      }
+      orderedCacheBehaviors: assetsPaths.map(pathPattern => ({
+        allowedMethods: ["GET", "HEAD", "OPTIONS"],
+        cachedMethods: ["GET", "HEAD", "OPTIONS"],
+        compress: true,
+        defaultTtl: 31536000,
+        forwardedValues: {
+          cookies: {
+            forward: "none"
+          },
+          headers: ["Origin"],
+          queryString: false
+        },
+        maxTtl: 31536000,
+        minTtl: 31536000,
+        pathPattern,
+        targetOriginId: contentBucket.arn,
+        viewerProtocolPolicy: "redirect-to-https",
+        lambdaFunctionAssociations: [
+          // add lambda edge with cache headers for immutable assets
+          {
+            eventType: "viewer-response",
+            lambdaArn: assetsCachingLambdaArn
+          }
+        ]
+      })),
+      priceClass: "PriceClass_100",
+      restrictions: {
+        geoRestriction: {
+          restrictionType: "none"
+        }
+      },
+      viewerCertificate: {
+        acmCertificateArn: acmCertificate.apply(x => x.arn),
+        sslSupportMethod: "sni-only",
+        minimumProtocolVersion: "TLSv1.2_2019"
+      },
+      isIpv6Enabled: true
+    },
+    {
+      parent,
+      dependsOn: [contentBucket]
+    }
   );
 }
 
@@ -187,28 +192,25 @@ function createCloudFront(
  * This allowes to have naked domain websites.
  * @param parent {pulumi.ComponentResource} parent component
  * @param domain {string} website domain name
- * @param cdn {aws.cloudfront.Distribution} optional CDN distribution. If defined, ALIAS record will be created.
  * @param cname {pulumi.Output<string>} aliased domain name
  * @returns {aws.route53.Record[]}
  */
 function createAliasRecords(
-    parent: Website,
-    domain: string,
-    cname: pulumi.Output<string>
+  parent: Website,
+  domain: string,
+  cname: pulumi.Output<string>
 ): aws.route53.Record[] {
   const hostedZone = getHostedZone(domain);
   const cdn = parent.cdn;
   if (!cdn) {
     const args: aws.route53.RecordArgs = {
       name: domain,
-      zoneId: hostedZone.apply((x) => x.zoneId),
+      zoneId: hostedZone.apply(x => x.zoneId),
       ttl: 300,
       type: "CNAME",
-      records: [cname],
+      records: [cname]
     };
-    return [
-      new aws.route53.Record(`${domain}/dns-record`, args, { parent })
-    ]
+    return [new aws.route53.Record(`${domain}/dns-record`, args, { parent })];
   }
 
   const args = (type: string) => ({
@@ -219,20 +221,49 @@ function createAliasRecords(
       {
         evaluateTargetHealth: true,
         name: cdn.domainName,
-        zoneId: cdn.hostedZoneId,
-      },
-    ],
+        zoneId: cdn.hostedZoneId
+      }
+    ]
   });
   return [
     new aws.route53.Record(`${domain}/dns-record`, args("A"), { parent }),
-    new aws.route53.Record(`${domain}/dns-record-ipv6`, args("AAAA"), { parent })
+    new aws.route53.Record(`${domain}/dns-record-ipv6`, args("AAAA"), {
+      parent
+    })
   ];
 }
 
-function getHostedZone(domain: string) {
-  const domainParts = getDomainAndSubdomain(domain);
+export function createTxtRecord(name: string, domain: string, value: string) {
+  const hostedZone = getHostedZone(domain);
+  return new aws.route53.Record(`${domain}/txt-record-${name}`, {
+    name: hostedZone.apply(x => x.name),
+    type: "TXT",
+    zoneId: hostedZone.apply(x => x.zoneId),
+    records: [value],
+    ttl: 3600
+  });
+}
+
+export function createGoogleMxRecords(domain: string) {
+  const hostedZone = getHostedZone(domain);
+  return new aws.route53.Record(`${domain}/google-mx-records`, {
+    name: hostedZone.apply(x => x.name),
+    type: "MX",
+    zoneId: hostedZone.apply(x => x.zoneId),
+    records: [
+      "1 ASPMX.L.GOOGLE.COM.",
+      "5 ALT1.ASPMX.L.GOOGLE.COM.",
+      "5 ALT2.ASPMX.L.GOOGLE.COM.",
+      "10 ALT3.ASPMX.L.GOOGLE.COM.",
+      "10 ALT4.ASPMX.L.GOOGLE.COM."
+    ],
+    ttl: 3600
+  });
+}
+
+export function getHostedZone(domain: string) {
   const hostedZone = aws.route53.getZone({
-    name: domainParts.parentDomain
+    name: getRootDomain(domain)
   });
   return pulumi.output(hostedZone);
 }
@@ -248,21 +279,21 @@ export function createCertificate(domain: string) {
   const parentDomain = getParentDomain(domain);
   const usEast1 = new aws.Provider(`${domain}/provider/us-east-1`, {
     profile: aws.config.profile,
-    region: aws.USEast1Region,
+    region: aws.USEast1Region
   });
 
   const certificate = new aws.acm.Certificate(
-      `${parentDomain}-certificate`,
-      {
-        domainName: `*.${parentDomain}`,
-        subjectAlternativeNames: [parentDomain],
-        validationMethod: "DNS",
-      },
-      { provider: usEast1 }
+    `${parentDomain}-certificate`,
+    {
+      domainName: `*.${parentDomain}`,
+      subjectAlternativeNames: [parentDomain],
+      validationMethod: "DNS"
+    },
+    { provider: usEast1 }
   );
   const hostedZoneId = aws.route53
-      .getZone({ name: parentDomain }, { async: true })
-      .then(zone => zone.zoneId);
+    .getZone({ name: getRootDomain(domain) }, { async: true })
+    .then(zone => zone.zoneId);
 
   /**
    * Create a Certification Authority Authorization (CAA) DNS record to specify that AWS Certificate Manager (ACM)
@@ -289,23 +320,23 @@ export function createCertificate(domain: string) {
    *  See https://docs.aws.amazon.com/acm/latest/userguide/gs-acm-validate-dns.html for more info.
    */
   const certificateValidationDomain = new aws.route53.Record(
-      `${parentDomain}-validationRecord`,
-      {
-        name: certificate.domainValidationOptions[0].resourceRecordName,
-        zoneId: hostedZoneId,
-        type: certificate.domainValidationOptions[0].resourceRecordType,
-        records: [certificate.domainValidationOptions[0].resourceRecordValue],
-        ttl: 600,
-      }
+    `${parentDomain}-validationRecord`,
+    {
+      name: certificate.domainValidationOptions[0].resourceRecordName,
+      zoneId: hostedZoneId,
+      type: certificate.domainValidationOptions[0].resourceRecordType,
+      records: [certificate.domainValidationOptions[0].resourceRecordValue],
+      ttl: 600
+    }
   );
 
   const certificateValidation = new aws.acm.CertificateValidation(
-      `${parentDomain}-certificateValidation`,
-      {
-        certificateArn: certificate.arn,
-        validationRecordFqdns: [certificateValidationDomain.fqdn],
-      },
-      { provider: usEast1 }
+    `${parentDomain}-certificateValidation`,
+    {
+      certificateArn: certificate.arn,
+      validationRecordFqdns: [certificateValidationDomain.fqdn]
+    },
+    { provider: usEast1 }
   );
   return certificateValidation.certificateArn;
 }
@@ -322,14 +353,19 @@ function getCertificate(domain: string) {
     region: aws.USEast1Region
   });
   const certificate = aws.acm.getCertificate(
-      { domain: `*.${parentDomain}`, mostRecent: true, statuses: ["ISSUED"] },
-      { provider: usEast1, async: true }
+    { domain: `*.${parentDomain}`, mostRecent: true, statuses: ["ISSUED"] },
+    { provider: usEast1, async: true }
   );
   return pulumi.output(certificate);
 }
 
 function getParentDomain(domain: string) {
-  const rootDomain = getDomainAndSubdomain(domain).parentDomain;
+  const parentDomain = getDomainAndSubdomain(domain).parentDomain;
+  return parentDomain.substr(0, parentDomain.length - 1);
+}
+
+function getRootDomain(domain: string) {
+  const rootDomain = getDomainAndSubdomain(domain).rootDomain;
   return rootDomain.substr(0, rootDomain.length - 1);
 }
 
@@ -345,14 +381,20 @@ function getDomainAndSubdomain(domain: string) {
     throw new Error(`No TLD found on ${domain}`);
   }
   if (parts.length === 2) {
-    return { subdomain: "", parentDomain: `${domain}.` };
+    return {
+      subdomain: "",
+      parentDomain: `${domain}.`,
+      rootDomain: `${domain}.`
+    };
   }
 
-  const subdomain = parts[0];
-  parts.shift();
+  const subdomain = parts.slice(0, parts.length - 2);
+  const parent = parts.slice(1);
+  const root = parts.slice(parts.length - 2);
   return {
-    subdomain,
-    parentDomain: `${parts.join(".")}.`
+    subdomain: subdomain.join("."),
+    parentDomain: `${parent.join(".")}.`,
+    rootDomain: `${root.join(".")}.`
   };
 }
 
@@ -387,9 +429,9 @@ export class Website extends pulumi.ComponentResource {
    * @param opts {pulumi.ComponentResourceOptions}
    */
   constructor(
-      domain: string,
-      settings: WebsiteSettings,
-      opts?: pulumi.ComponentResourceOptions
+    domain: string,
+    settings: WebsiteSettings,
+    opts?: pulumi.ComponentResourceOptions
   ) {
     super("topmonks-webs:WebSite", domain, settings, opts);
     this.domain = pulumi.output(domain);
@@ -404,26 +446,31 @@ export class Website extends pulumi.ComponentResource {
    * @returns {WebSite}
    */
   static create(
-      domain: string,
-      settings: WebsiteSettings,
-      opts?: pulumi.ComponentResourceOptions
+    domain: string,
+    settings: WebsiteSettings,
+    opts?: pulumi.ComponentResourceOptions
   ) {
     const website = new Website(domain, settings, opts);
     const contentBucket = createBucket(website, domain, settings.bucket || {});
     website.contentBucket = contentBucket;
     website.contentBucketPolicy = createBucketPolicy(
+      website,
+      domain,
+      contentBucket
+    );
+    if (!settings.cdn?.disabled) {
+      website.cdn = createCloudFront(
         website,
         domain,
-        contentBucket
-    );
-    if (!(settings.cdn?.disabled)) {
-      website.cdn = createCloudFront(website, domain, contentBucket, settings.isPwa);
+        contentBucket,
+        settings.isPwa
+      );
     }
-    if (!(settings.dns?.disabled)) {
+    if (!settings.dns?.disabled) {
       website.dnsRecords = createAliasRecords(
-          website,
-          domain,
-          contentBucket.bucketDomainName
+        website,
+        domain,
+        contentBucket.bucketDomainName
       );
     }
 
@@ -439,9 +486,9 @@ export class Website extends pulumi.ComponentResource {
   }
 
   static createRedirect(
-      domain: string,
-      settings: RedirectWebsiteSettings,
-      opts?: pulumi.ComponentResourceOptions
+    domain: string,
+    settings: RedirectWebsiteSettings,
+    opts?: pulumi.ComponentResourceOptions
   ): Website {
     const bucketSettings = {
       website: {
@@ -450,16 +497,16 @@ export class Website extends pulumi.ComponentResource {
     };
     const website = new Website(domain, { bucket: bucketSettings }, opts);
     const bucket = (website.contentBucket = createBucket(
-        website,
-        domain,
-        bucketSettings
+      website,
+      domain,
+      bucketSettings
     ));
     website.contentBucketPolicy = createBucketPolicy(website, domain, bucket);
     website.cdn = createCloudFront(website, domain, bucket, false);
     website.dnsRecords = createAliasRecords(
-        website,
-        domain,
-        bucket.bucketDomainName
+      website,
+      domain,
+      bucket.bucketDomainName
     );
     return website;
   }

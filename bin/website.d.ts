@@ -1,5 +1,8 @@
 import * as aws from "@pulumi/aws";
 import * as pulumi from "@pulumi/pulumi";
+export declare function createTxtRecord(name: string, domain: string, value: string): aws.route53.Record;
+export declare function createGoogleMxRecords(domain: string): aws.route53.Record;
+export declare function getHostedZone(domain: string): pulumi.Output<pulumi.UnwrappedObject<aws.route53.GetZoneResult>>;
 /**
  * Creates Widlcard certificate for top domain.
  * This creates certificate for root domain with wildcard for all subdomains.

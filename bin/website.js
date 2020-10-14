@@ -1,5 +1,13 @@
-import * as aws from "@pulumi/aws";
-import * as pulumi from "@pulumi/pulumi";
+"use strict";
+var _a, _b, _c;
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.Website = exports.createCertificate = exports.getHostedZone = exports.createGoogleMxRecords = exports.createTxtRecord = void 0;
+const aws = require("@pulumi/aws");
+const pulumi = require("@pulumi/pulumi");
+const websiteConfig = new pulumi.Config("topmonks_website");
+const assetsPaths = JSON.parse((_a = websiteConfig.get("assets_paths")) !== null && _a !== void 0 ? _a : "[]");
+const assetsCachingLambdaArn = (_b = websiteConfig.get("assets_caching_lambda_arn")) !== null && _b !== void 0 ? _b : "";
+const securityHeadersLambdaArn = (_c = websiteConfig.get("security_headers_lambda_arn")) !== null && _c !== void 0 ? _c : "";
 /**
  * Creates S3 bucket with static website hosting enabled
  * @param parent {pulumi.ComponentResource} parent component
@@ -50,7 +58,7 @@ function createBucketPolicy(parent, domain, bucket) {
  * @param parent {pulumi.ComponentResource} parent component
  * @param domain {string} website domain name
  * @param contentBucket {aws.s3.Bucket}
- * @param isSPA {boolean}
+ * @param isPwa {boolean}
  * @returns {aws.cloudfront.Distribution}
  */
 function createCloudFront(parent, domain, contentBucket, isPwa) {
@@ -99,37 +107,35 @@ function createCloudFront(parent, domain, contentBucket, isPwa) {
                 // add lambda edge with security headers for A+ SSL Grade
                 {
                     eventType: "viewer-response",
-                    lambdaArn: "arn:aws:lambda:us-east-1:661884430919:function:SecurityHeaders:7"
+                    lambdaArn: securityHeadersLambdaArn
                 }
             ]
         },
-        orderedCacheBehaviors: [
-            {
-                allowedMethods: ["GET", "HEAD", "OPTIONS"],
-                cachedMethods: ["GET", "HEAD", "OPTIONS"],
-                compress: true,
-                defaultTtl: 31536000,
-                forwardedValues: {
-                    cookies: {
-                        forward: "none"
-                    },
-                    headers: ["Origin"],
-                    queryString: false
+        orderedCacheBehaviors: assetsPaths.map(pathPattern => ({
+            allowedMethods: ["GET", "HEAD", "OPTIONS"],
+            cachedMethods: ["GET", "HEAD", "OPTIONS"],
+            compress: true,
+            defaultTtl: 31536000,
+            forwardedValues: {
+                cookies: {
+                    forward: "none"
                 },
-                maxTtl: 31536000,
-                minTtl: 31536000,
-                pathPattern: "/assets/*",
-                targetOriginId: contentBucket.arn,
-                viewerProtocolPolicy: "redirect-to-https",
-                lambdaFunctionAssociations: [
-                    // add lambda edge with cache headers for immutable assets
-                    {
-                        eventType: "viewer-response",
-                        lambdaArn: "arn:aws:lambda:us-east-1:661884430919:function:CacheHeaders:2"
-                    }
-                ]
-            }
-        ],
+                headers: ["Origin"],
+                queryString: false
+            },
+            maxTtl: 31536000,
+            minTtl: 31536000,
+            pathPattern,
+            targetOriginId: contentBucket.arn,
+            viewerProtocolPolicy: "redirect-to-https",
+            lambdaFunctionAssociations: [
+                // add lambda edge with cache headers for immutable assets
+                {
+                    eventType: "viewer-response",
+                    lambdaArn: assetsCachingLambdaArn
+                }
+            ]
+        })),
         priceClass: "PriceClass_100",
         restrictions: {
             geoRestriction: {
@@ -153,7 +159,6 @@ function createCloudFront(parent, domain, contentBucket, isPwa) {
  * This allowes to have naked domain websites.
  * @param parent {pulumi.ComponentResource} parent component
  * @param domain {string} website domain name
- * @param cdn {aws.cloudfront.Distribution} optional CDN distribution. If defined, ALIAS record will be created.
  * @param cname {pulumi.Output<string>} aliased domain name
  * @returns {aws.route53.Record[]}
  */
@@ -163,14 +168,12 @@ function createAliasRecords(parent, domain, cname) {
     if (!cdn) {
         const args = {
             name: domain,
-            zoneId: hostedZone.apply((x) => x.zoneId),
+            zoneId: hostedZone.apply(x => x.zoneId),
             ttl: 300,
             type: "CNAME",
-            records: [cname],
+            records: [cname]
         };
-        return [
-            new aws.route53.Record(`${domain}/dns-record`, args, { parent })
-        ];
+        return [new aws.route53.Record(`${domain}/dns-record`, args, { parent })];
     }
     const args = (type) => ({
         name: domain,
@@ -180,22 +183,52 @@ function createAliasRecords(parent, domain, cname) {
             {
                 evaluateTargetHealth: true,
                 name: cdn.domainName,
-                zoneId: cdn.hostedZoneId,
-            },
-        ],
+                zoneId: cdn.hostedZoneId
+            }
+        ]
     });
     return [
         new aws.route53.Record(`${domain}/dns-record`, args("A"), { parent }),
-        new aws.route53.Record(`${domain}/dns-record-ipv6`, args("AAAA"), { parent })
+        new aws.route53.Record(`${domain}/dns-record-ipv6`, args("AAAA"), {
+            parent
+        })
     ];
 }
+function createTxtRecord(name, domain, value) {
+    const hostedZone = getHostedZone(domain);
+    return new aws.route53.Record(`${domain}/txt-record-${name}`, {
+        name: hostedZone.apply(x => x.name),
+        type: "TXT",
+        zoneId: hostedZone.apply(x => x.zoneId),
+        records: [value],
+        ttl: 3600
+    });
+}
+exports.createTxtRecord = createTxtRecord;
+function createGoogleMxRecords(domain) {
+    const hostedZone = getHostedZone(domain);
+    return new aws.route53.Record(`${domain}/google-mx-records`, {
+        name: hostedZone.apply(x => x.name),
+        type: "MX",
+        zoneId: hostedZone.apply(x => x.zoneId),
+        records: [
+            "1 ASPMX.L.GOOGLE.COM.",
+            "5 ALT1.ASPMX.L.GOOGLE.COM.",
+            "5 ALT2.ASPMX.L.GOOGLE.COM.",
+            "10 ALT3.ASPMX.L.GOOGLE.COM.",
+            "10 ALT4.ASPMX.L.GOOGLE.COM."
+        ],
+        ttl: 3600
+    });
+}
+exports.createGoogleMxRecords = createGoogleMxRecords;
 function getHostedZone(domain) {
-    const domainParts = getDomainAndSubdomain(domain);
     const hostedZone = aws.route53.getZone({
-        name: domainParts.parentDomain
+        name: getRootDomain(domain)
     });
     return pulumi.output(hostedZone);
 }
+exports.getHostedZone = getHostedZone;
 /**
  * Creates Widlcard certificate for top domain.
  * This creates certificate for root domain with wildcard for all subdomains.
@@ -203,19 +236,19 @@ function getHostedZone(domain) {
  * @param domain {string} website domain name
  * @returns {pulumi.Output<pulumi.Unwrap<aws.acm.GetCertificateResult>>}
  */
-export function createCertificate(domain) {
+function createCertificate(domain) {
     const parentDomain = getParentDomain(domain);
     const usEast1 = new aws.Provider(`${domain}/provider/us-east-1`, {
         profile: aws.config.profile,
-        region: aws.USEast1Region,
+        region: aws.USEast1Region
     });
     const certificate = new aws.acm.Certificate(`${parentDomain}-certificate`, {
         domainName: `*.${parentDomain}`,
         subjectAlternativeNames: [parentDomain],
-        validationMethod: "DNS",
+        validationMethod: "DNS"
     }, { provider: usEast1 });
     const hostedZoneId = aws.route53
-        .getZone({ name: parentDomain }, { async: true })
+        .getZone({ name: getRootDomain(domain) }, { async: true })
         .then(zone => zone.zoneId);
     /**
      * Create a Certification Authority Authorization (CAA) DNS record to specify that AWS Certificate Manager (ACM)
@@ -245,14 +278,15 @@ export function createCertificate(domain) {
         zoneId: hostedZoneId,
         type: certificate.domainValidationOptions[0].resourceRecordType,
         records: [certificate.domainValidationOptions[0].resourceRecordValue],
-        ttl: 600,
+        ttl: 600
     });
     const certificateValidation = new aws.acm.CertificateValidation(`${parentDomain}-certificateValidation`, {
         certificateArn: certificate.arn,
-        validationRecordFqdns: [certificateValidationDomain.fqdn],
+        validationRecordFqdns: [certificateValidationDomain.fqdn]
     }, { provider: usEast1 });
     return certificateValidation.certificateArn;
 }
+exports.createCertificate = createCertificate;
 /**
  * Gets Widlcard certificate for top domain
  * @param domain {string} website domain name
@@ -268,7 +302,11 @@ function getCertificate(domain) {
     return pulumi.output(certificate);
 }
 function getParentDomain(domain) {
-    const rootDomain = getDomainAndSubdomain(domain).parentDomain;
+    const parentDomain = getDomainAndSubdomain(domain).parentDomain;
+    return parentDomain.substr(0, parentDomain.length - 1);
+}
+function getRootDomain(domain) {
+    const rootDomain = getDomainAndSubdomain(domain).rootDomain;
     return rootDomain.substr(0, rootDomain.length - 1);
 }
 /**
@@ -283,20 +321,26 @@ function getDomainAndSubdomain(domain) {
         throw new Error(`No TLD found on ${domain}`);
     }
     if (parts.length === 2) {
-        return { subdomain: "", parentDomain: `${domain}.` };
+        return {
+            subdomain: "",
+            parentDomain: `${domain}.`,
+            rootDomain: `${domain}.`
+        };
     }
-    const subdomain = parts[0];
-    parts.shift();
+    const subdomain = parts.slice(0, parts.length - 2);
+    const parent = parts.slice(1);
+    const root = parts.slice(parts.length - 2);
     return {
-        subdomain,
-        parentDomain: `${parts.join(".")}.`
+        subdomain: subdomain.join("."),
+        parentDomain: `${parent.join(".")}.`,
+        rootDomain: `${root.join(".")}.`
     };
 }
 /**
  * WebSite component resource represents logical unit of static web site
  * hosted in AWS S3 and distributed via CloudFront CDN with Route53 DNS Record.
  */
-export class Website extends pulumi.ComponentResource {
+class Website extends pulumi.ComponentResource {
     /**
      *
      * @param domain {string} domain name of the website
@@ -360,4 +404,5 @@ export class Website extends pulumi.ComponentResource {
         return website;
     }
 }
+exports.Website = Website;
 //# sourceMappingURL=website.js.map
