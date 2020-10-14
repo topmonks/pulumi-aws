@@ -31,7 +31,9 @@ export class AssetsCachingLambda extends pulumi.CustomResource {
     const role = createRole(name);
 
     // Some resources _must_ be put in us-east-1, such as Lambda at Edge.
-    const awsUsEast1 = new aws.Provider("us-east-1", { region: "us-east-1" });
+    const awsUsEast1 = new aws.Provider(`${name}-us-east-1`, {
+      region: "us-east-1"
+    });
     const lambda = new aws.lambda.CallbackFunction(
       `${name}-function`,
       {
