@@ -6,10 +6,10 @@ const websiteConfig = new pulumi.Config("topmonks_website");
 const assetsPaths: string[] = JSON.parse(
   websiteConfig.get("assets_paths") ?? "[]"
 );
-const assetsCachingLambdaArn =
-  websiteConfig.get("assets_caching_lambda_arn") ?? "";
-const securityHeadersLambdaArn =
-  websiteConfig.get("security_headers_lambda_arn") ?? "";
+const assetsCachingLambdaArn = websiteConfig.get("assets_caching_lambda_arn");
+const securityHeadersLambdaArn = websiteConfig.get(
+  "security_headers_lambda_arn"
+);
 
 /**
  * Creates S3 bucket with static website hosting enabled
@@ -80,13 +80,18 @@ function createBucketPolicy(
  * @param domain {string} website domain name
  * @param contentBucket {aws.s3.Bucket}
  * @param isPwa {boolean}
+ * @param assetsCachingLambdaArn {string}
+ * @param securityHeadersLambdaArn {string}
  * @returns {aws.cloudfront.Distribution}
  */
 function createCloudFront(
   parent: pulumi.ComponentResource,
   domain: string,
   contentBucket: aws.s3.Bucket,
-  isPwa: boolean | undefined
+  isPwa: boolean | undefined,
+  assetsPaths?: string[],
+  assetsCachingLambdaArn?: string,
+  securityHeadersLambdaArn?: string
 ) {
   const acmCertificate = getCertificate(domain);
   const customErrorResponses: pulumi.Input<
@@ -133,15 +138,17 @@ function createCloudFront(
         maxTtl: 31536000,
         // enable gzip
         compress: true,
-        lambdaFunctionAssociations: [
-          // add lambda edge with security headers for A+ SSL Grade
-          {
-            eventType: "viewer-response",
-            lambdaArn: securityHeadersLambdaArn
-          }
-        ]
+        lambdaFunctionAssociations: securityHeadersLambdaArn
+          ? [
+              // add lambda edge with security headers for A+ SSL Grade
+              {
+                eventType: "viewer-response",
+                lambdaArn: securityHeadersLambdaArn
+              }
+            ]
+          : undefined
       },
-      orderedCacheBehaviors: assetsPaths.map(pathPattern => ({
+      orderedCacheBehaviors: assetsPaths?.map(pathPattern => ({
         allowedMethods: ["GET", "HEAD", "OPTIONS"],
         cachedMethods: ["GET", "HEAD", "OPTIONS"],
         compress: true,
@@ -158,13 +165,15 @@ function createCloudFront(
         pathPattern,
         targetOriginId: contentBucket.arn,
         viewerProtocolPolicy: "redirect-to-https",
-        lambdaFunctionAssociations: [
-          // add lambda edge with cache headers for immutable assets
-          {
-            eventType: "viewer-response",
-            lambdaArn: assetsCachingLambdaArn
-          }
-        ]
+        lambdaFunctionAssociations: assetsCachingLambdaArn
+          ? [
+              // add lambda edge with cache headers for immutable assets
+              {
+                eventType: "viewer-response",
+                lambdaArn: assetsCachingLambdaArn
+              }
+            ]
+          : undefined
       })),
       priceClass: "PriceClass_100",
       restrictions: {
@@ -450,6 +459,12 @@ export class Website extends pulumi.ComponentResource {
     settings: WebsiteSettings,
     opts?: pulumi.ComponentResourceOptions
   ) {
+    settings = {
+      assetsPaths,
+      assetsCachingLambdaArn,
+      securityHeadersLambdaArn,
+      ...settings
+    };
     const website = new Website(domain, settings, opts);
     const contentBucket = createBucket(website, domain, settings.bucket || {});
     website.contentBucket = contentBucket;
@@ -463,7 +478,10 @@ export class Website extends pulumi.ComponentResource {
         website,
         domain,
         contentBucket,
-        settings.isPwa
+        settings.isPwa,
+        settings.assetsPaths,
+        settings.assetsCachingLambdaArn,
+        settings.securityHeadersLambdaArn
       );
     }
     if (!settings.dns?.disabled) {
@@ -518,6 +536,9 @@ interface WebsiteSettings {
   cdn?: DisableSetting;
   dns?: DisableSetting;
   "lh-token"?: string;
+  assetsPaths?: string[];
+  assetsCachingLambdaArn?: string;
+  securityHeadersLambdaArn?: string;
 }
 
 interface RedirectWebsiteSettings {
