@@ -1,14 +1,14 @@
 {
   "compilerOptions": {
-      "outDir": "bin",
-      "target": "es6",
-      "module": "commonjs",
-      "moduleResolution": "node",
-      "declaration": true,
-      "sourceMap": true
+    "outDir": "bin",
+    "target": "es2019",
+    "module": "commonjs",
+    "moduleResolution": "node",
+    "declaration": true,
+    "sourceMap": true
   },
   "files": [
-     "website.ts"
+    "index.ts"
   ]
 }
 
