@@ -315,6 +315,10 @@ export function createCertificate(domain: string) {
     type: "CAA",
     records: [
       `0 issue "letsencrypt.org"`,
+      `0 issue "amazon.com"`,
+      `0 issue "amazontrust.com"`,
+      `0 issue "awstrust.com"`,
+      `0 issue "amazonaws.com"`,
       `0 issuewild "amazon.com"`,
       `0 issuewild "amazontrust.com"`,
       `0 issuewild "awstrust.com"`,
@@ -363,7 +367,7 @@ function getCertificate(domain: string) {
   });
   const certificate = aws.acm.getCertificate(
     { domain: `*.${parentDomain}`, mostRecent: true, statuses: ["ISSUED"] },
-    { provider: usEast1 }
+    { provider: usEast1, async: true }
   );
   return pulumi.output(certificate);
 }
