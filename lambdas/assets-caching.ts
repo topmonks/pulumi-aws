@@ -1,6 +1,7 @@
 import * as aws from "@pulumi/aws";
 import * as pulumi from "@pulumi/pulumi";
 import { createRole } from "./edge-role";
+import * as path from "path";
 
 export class AssetsCachingLambda extends pulumi.ComponentResource {
   private lambda: aws.lambda.Function;
@@ -31,7 +32,9 @@ export class AssetsCachingLambda extends pulumi.ComponentResource {
         handler: "index.handler",
         runtime: aws.lambda.Runtime.NodeJS12dX,
         code: new pulumi.asset.AssetArchive({
-          ".": new pulumi.asset.FileArchive("./assets-caching")
+          ".": new pulumi.asset.FileArchive(
+            path.resolve(__dirname, "./assets-caching")
+          )
         })
       },
       { provider: awsUsEast1 }

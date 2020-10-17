@@ -18,6 +18,7 @@ jobs:
           name: Create package
           command: |
             cp package.json bin/
+            cp -R lambdas/code/* bin/lambdas
             echo "//registry.npmjs.org/:_authToken=${NPM_TOKEN}" > ~/.npmrc
             yarn publish bin --access public
 
