@@ -31,7 +31,7 @@ export class AssetsCachingLambda extends pulumi.ComponentResource {
         handler: "index.handler",
         runtime: aws.lambda.Runtime.NodeJS12dX,
         code: new pulumi.asset.AssetArchive({
-          ".": new pulumi.asset.FileArchive("./lambdas/assets-caching")
+          ".": new pulumi.asset.FileArchive("./assets-caching")
         })
       },
       { provider: awsUsEast1 }

@@ -31,7 +31,7 @@ export class SecurityHeadersLambda extends pulumi.ComponentResource {
         handler: "index.handler",
         runtime: aws.lambda.Runtime.NodeJS12dX,
         code: new pulumi.asset.AssetArchive({
-          ".": new pulumi.asset.FileArchive("./lambdas/security-headers")
+          ".": new pulumi.asset.FileArchive("./security-headers")
         })
       },
       { provider: awsUsEast1 }
