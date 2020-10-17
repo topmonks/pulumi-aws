@@ -2,18 +2,6 @@ import * as aws from "@pulumi/aws";
 import * as pulumi from "@pulumi/pulumi";
 import { createRole } from "./edge-role";
 
-async function implementation(event: any, context: aws.lambda.Context) {
-  const response = event.Records[0].cf.response;
-  const headers = response.headers;
-
-  const addHeader = (headers, key, value) =>
-    (headers[key.toLowerCase()] = [{ key, value }]);
-
-  addHeader(headers, "Cache-Control", "public, max-age=31536000, immutable");
-
-  return response;
-}
-
 export class AssetsCachingLambda extends pulumi.ComponentResource {
   private lambda: aws.lambda.Function;
 
@@ -34,13 +22,17 @@ export class AssetsCachingLambda extends pulumi.ComponentResource {
     const awsUsEast1 = new aws.Provider(`${name}-us-east-1`, {
       region: "us-east-1"
     });
-    const lambda = new aws.lambda.CallbackFunction(
+    const lambda = new aws.lambda.Function(
       `${name}-function`,
       {
         publish: true,
-        role,
+        role: role.arn,
         timeout: 5,
-        callback: implementation
+        handler: "index.handler",
+        runtime: aws.lambda.Runtime.NodeJS12dX,
+        code: new pulumi.asset.AssetArchive({
+          ".": new pulumi.asset.FileArchive("./lambdas/assets-caching")
+        })
       },
       { provider: awsUsEast1 }
     );
