@@ -5,12 +5,12 @@ import { getCertificate, getHostedZone } from "./website";
 
 export class CustomDomainDistribution extends ComponentResource {
   private readonly gateway: awsx.apigateway.API;
-  private readonly domainName: string;
+  readonly domainName: string;
   private readonly basePath?: string;
-  private readonly apiDistribution: aws.apigateway.DomainName;
-  private readonly dnsRecord: aws.route53.Record;
-  private readonly dnsRecordIp6: aws.route53.Record;
-  private readonly mapping: aws.apigateway.BasePathMapping;
+  readonly apiDistribution: aws.apigateway.DomainName;
+  readonly dnsRecord: aws.route53.Record;
+  readonly dnsRecordIp6: aws.route53.Record;
+  readonly mapping: aws.apigateway.BasePathMapping;
 
   constructor(
     name: string,
@@ -65,7 +65,8 @@ export class CustomDomainDistribution extends ComponentResource {
     this.registerOutputs({
       apiDistribution: this.apiDistribution,
       mapping: this.mapping,
-      dnsRecord: this.dnsRecord
+      dnsRecord: this.dnsRecord,
+      dnsRecordIp6: this.dnsRecordIp6
     });
   }
 }
