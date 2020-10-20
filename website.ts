@@ -359,7 +359,7 @@ export function createCertificate(domain: string) {
  * @param domain {string} website domain name
  * @returns {pulumi.Output<pulumi.Unwrap<aws.acm.GetCertificateResult>>}
  */
-function getCertificate(domain: string) {
+export function getCertificate(domain: string) {
   const parentDomain = getParentDomain(domain);
   const usEast1 = new aws.Provider(`${domain}/get-provider/us-east-1`, {
     profile: aws.config.profile,
