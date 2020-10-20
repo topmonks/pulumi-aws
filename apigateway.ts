@@ -31,7 +31,7 @@ export class CustomDomainDistribution extends ComponentResource {
       certificateArn: apiCertificate.apply(x => x.arn)
     });
     const hostedZone = getHostedZone(this.domainName);
-    this.dnsRecord = new aws.route53.Record(name, {
+    this.dnsRecord = new aws.route53.Record(`${name}-ipv4`, {
       name: this.domainName,
       zoneId: hostedZone.apply(x => x.zoneId),
       type: "A",
@@ -43,7 +43,7 @@ export class CustomDomainDistribution extends ComponentResource {
         }
       ]
     });
-    this.dnsRecordIp6 = new aws.route53.Record(name, {
+    this.dnsRecordIp6 = new aws.route53.Record(`${name}-ipv6`, {
       name: this.domainName,
       zoneId: hostedZone.apply(x => x.zoneId),
       type: "AAAA",
