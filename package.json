@@ -1,6 +1,6 @@
 {
   "name": "@topmonks/pulumi-aws",
-  "version": "1.1.8",
+  "version": "1.2.0",
   "description": "Custom AWS Resources for Pulumi",
   "keywords": [
     "pulumi",
@@ -11,10 +11,12 @@
   "license": "EPL-2.0",
   "peerDependencies": {
     "@pulumi/aws": "^1.0.0 || ^2.0.0 || ^3.0.0",
+    "@pulumi/awsx": "^0.22.0 || ^1.0.0",
     "@pulumi/pulumi": "^1.9.1 || ^2.0.0"
   },
   "devDependencies": {
     "@pulumi/aws": "^3.7.0",
+    "@pulumi/awsx": "^0.22.0",
     "@pulumi/pulumi": "^2.11.2",
     "@types/node": "^14.11.8",
     "prettier": "^2.1.2",
