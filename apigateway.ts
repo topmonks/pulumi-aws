@@ -25,7 +25,7 @@ export class Api extends ComponentResource {
     const anySchemaModel = new aws.apigateway.Model(
       name,
       {
-        name: name.replace("-", "") + "AnySchema",
+        name: name.replace(/-/g, "") + "AnySchema",
         contentType: "application/json",
         restApi: this.gateway.restAPI,
         schema: JSON.stringify({
