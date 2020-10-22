@@ -1,6 +1,6 @@
 {
   "name": "@topmonks/pulumi-aws",
-  "version": "1.4.4",
+  "version": "1.4.5",
   "description": "Custom AWS Resources for Pulumi",
   "keywords": [
     "pulumi",
