@@ -46,6 +46,10 @@ export class CustomDomainDistribution extends ComponentResource {
   readonly dnsRecordIp6: aws.route53.Record;
   readonly mapping: aws.apigateway.BasePathMapping;
 
+  get url() {
+    return this.mapping.domainName.apply(x => `https://${x}/`);
+  }
+
   constructor(
     name: string,
     args: CustomDomainDistributionArgs,
