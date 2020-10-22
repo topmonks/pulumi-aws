@@ -1,4 +1,4 @@
-import { Output, interpolate } from "@pulumi/pulumi";
+import { Output, interpolate, all } from "@pulumi/pulumi";
 import * as aws from "@pulumi/aws";
 import * as awsx from "@pulumi/awsx";
 import { ComponentResource, ResourceOptions } from "@pulumi/pulumi";
@@ -171,13 +171,14 @@ function getMethodResource(
   gateway: awsx.apigateway.API,
   path: string
 ): Output<aws.apigateway.GetResourceResult> {
-  return gateway.restAPI.executionArn.apply(x =>
-    gateway.deployment.executionArn.apply(_ =>
-      aws.apigateway.getResource({
-        path,
-        restApiId: <string>x.split(":").pop()
-      })
-    )
+  return all([
+    gateway.restAPI.executionArn,
+    gateway.deployment.executionArn
+  ]).apply(([executionArn, _]) =>
+    aws.apigateway.getResource({
+      path,
+      restApiId: <string>executionArn.split(":").pop()
+    })
   );
 }
 
@@ -259,7 +260,7 @@ export type ApiRoute = NamedLambdaApiRoute | HandlerApiRoute;
 
 export interface ApiArgs {
   stageName: string;
-  deploymentGroup: Output<string>;
+  deploymentGroup?: Output<string>;
   routes: ApiRoute[];
 }
 
