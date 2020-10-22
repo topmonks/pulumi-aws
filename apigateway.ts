@@ -10,30 +10,33 @@ export class Api extends ComponentResource {
   constructor(name: string, args: ApiArgs, opts?: ResourceOptions) {
     super("topmonks:aws:apigateway:Api", name, {}, opts);
 
-    this.gateway = new awsx.apigateway.API(name, {
-      stageName: "v1",
-      routes: createRoutes(name, args.deploymentGroup, args.routes),
-      restApiArgs: {
-        minimumCompressionSize: 860
-      }
-    });
-
-    const anySchemaModel = new aws.apigateway.Model(name, {
-      name: name.replace("-", "") + "AnySchema",
-      contentType: "application/json",
-      restApi: this.gateway.restAPI,
-      schema: JSON.stringify({
-        type: "object",
-        title: "Any Schema"
-      })
-    });
-
-    createLambdaMethodExecutions(
+    this.gateway = new awsx.apigateway.API(
       name,
-      this.gateway,
-      anySchemaModel,
-      args.routes
+      {
+        stageName: "v1",
+        routes: createRoutes(name, args.deploymentGroup, args.routes),
+        restApiArgs: {
+          minimumCompressionSize: 860
+        }
+      },
+      { parent: this }
     );
+
+    const anySchemaModel = new aws.apigateway.Model(
+      name,
+      {
+        name: name.replace("-", "") + "AnySchema",
+        contentType: "application/json",
+        restApi: this.gateway.restAPI,
+        schema: JSON.stringify({
+          type: "object",
+          title: "Any Schema"
+        })
+      },
+      { parent: this }
+    );
+
+    createLambdaMethodExecutions(name, this, anySchemaModel, args.routes);
   }
 }
 
@@ -62,43 +65,59 @@ export class CustomDomainDistribution extends ComponentResource {
     this.basePath = args.basePath;
 
     const apiCertificate = getCertificate(this.domainName);
-    this.apiDistribution = new aws.apigateway.DomainName(name, {
-      domainName: this.domainName,
-      endpointConfiguration: { types: "EDGE" },
-      securityPolicy: "TLS_1_2",
-      certificateArn: apiCertificate.apply(x => x.arn)
-    });
+    this.apiDistribution = new aws.apigateway.DomainName(
+      name,
+      {
+        domainName: this.domainName,
+        endpointConfiguration: { types: "EDGE" },
+        securityPolicy: "TLS_1_2",
+        certificateArn: apiCertificate.apply(x => x.arn)
+      },
+      { parent: this }
+    );
     const hostedZone = getHostedZone(this.domainName);
-    this.dnsRecord = new aws.route53.Record(`${name}-ipv4`, {
-      name: this.domainName,
-      zoneId: hostedZone.apply(x => x.zoneId),
-      type: "A",
-      aliases: [
-        {
-          evaluateTargetHealth: true,
-          name: this.apiDistribution.cloudfrontDomainName,
-          zoneId: this.apiDistribution.cloudfrontZoneId
-        }
-      ]
-    });
-    this.dnsRecordIp6 = new aws.route53.Record(`${name}-ipv6`, {
-      name: this.domainName,
-      zoneId: hostedZone.apply(x => x.zoneId),
-      type: "AAAA",
-      aliases: [
-        {
-          evaluateTargetHealth: true,
-          name: this.apiDistribution.cloudfrontDomainName,
-          zoneId: this.apiDistribution.cloudfrontZoneId
-        }
-      ]
-    });
-    this.mapping = new aws.apigateway.BasePathMapping(name, {
-      restApi: this.gateway.restAPI,
-      stageName: this.gateway.stage.stageName,
-      domainName: this.apiDistribution.domainName,
-      basePath: this.basePath
-    });
+    this.dnsRecord = new aws.route53.Record(
+      `${name}-ipv4`,
+      {
+        name: this.domainName,
+        zoneId: hostedZone.apply(x => x.zoneId),
+        type: "A",
+        aliases: [
+          {
+            evaluateTargetHealth: true,
+            name: this.apiDistribution.cloudfrontDomainName,
+            zoneId: this.apiDistribution.cloudfrontZoneId
+          }
+        ]
+      },
+      { parent: this }
+    );
+    this.dnsRecordIp6 = new aws.route53.Record(
+      `${name}-ipv6`,
+      {
+        name: this.domainName,
+        zoneId: hostedZone.apply(x => x.zoneId),
+        type: "AAAA",
+        aliases: [
+          {
+            evaluateTargetHealth: true,
+            name: this.apiDistribution.cloudfrontDomainName,
+            zoneId: this.apiDistribution.cloudfrontZoneId
+          }
+        ]
+      },
+      { parent: this }
+    );
+    this.mapping = new aws.apigateway.BasePathMapping(
+      name,
+      {
+        restApi: this.gateway.restAPI,
+        stageName: this.gateway.stage.stageName,
+        domainName: this.apiDistribution.domainName,
+        basePath: this.basePath
+      },
+      { parent: this }
+    );
 
     this.registerOutputs({
       apiDistribution: this.apiDistribution,
@@ -138,24 +157,28 @@ export class LambdaMethodExecution extends ComponentResource {
 
 function createLambdaMethodExecutions(
   name: string,
-  gateway: awsx.apigateway.API,
+  parent: Api,
   anySchemaModel: aws.apigateway.Model,
   routes: ApiRoute[]
 ) {
   routes.map(
     ({ httpMethod, path, responseModel }) =>
-      new LambdaMethodExecution(`${name}/${httpMethod}${path}`, {
-        gateway,
-        path,
-        httpMethod,
-        responseModel: responseModel || anySchemaModel
-      })
+      new LambdaMethodExecution(
+        `${name}/${httpMethod}${path}`,
+        {
+          gateway: parent.gateway,
+          responseModel: responseModel ?? anySchemaModel,
+          httpMethod,
+          path
+        },
+        { parent }
+      )
   );
 }
 
 function createRoutes(
   name: string,
-  deploymentGroup: Output<string>,
+  deploymentGroup: Output<string> | undefined,
   routes: ApiRoute[]
 ): awsx.apigateway.Route[] {
   return routes.map(({ httpMethod, path, ...dispatch }) => ({
