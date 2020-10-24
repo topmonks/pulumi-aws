@@ -161,7 +161,15 @@ function createLambdaMethodExecutions(
   anySchemaModel: aws.apigateway.Model,
   routes: ApiRoute[]
 ) {
-  return routes.map(
+  const corsRoutes: ApiRoute[] = routes
+    .filter(x => x.cors)
+    .map(({ path, ...rest }) => ({
+      ...rest,
+      httpMethod: "OPTIONS" as awsx.apigateway.Method,
+      responseModel: anySchemaModel,
+      path
+    }));
+  return corsRoutes.concat(routes).map(
     ({ httpMethod, path, responseModel }) =>
       new LambdaMethodExecution(
         `${name}/${httpMethod}${path}`,
