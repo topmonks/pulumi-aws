@@ -161,7 +161,7 @@ function createLambdaMethodExecutions(
   anySchemaModel: aws.apigateway.Model,
   routes: ApiRoute[]
 ) {
-  routes.map(
+  return routes.map(
     ({ httpMethod, path, responseModel }) =>
       new LambdaMethodExecution(
         `${name}/${httpMethod}${path}`,
@@ -176,22 +176,60 @@ function createLambdaMethodExecutions(
   );
 }
 
+function createCorsHandler(
+  { origin, methods, headers }: CorsSettings = {
+    origin: "*",
+    methods: "*",
+    headers: []
+  }
+) {
+  return async function corsHandler(
+    event: awsx.apigateway.Request
+  ): Promise<awsx.apigateway.Response> {
+    return {
+      statusCode: 200,
+      headers: {
+        "Access-Control-Allow-Origin": origin,
+        "Access-Control-Allow-Methods": Array.isArray(methods)
+          ? methods.join(",")
+          : methods,
+        "Access-Control-Allow-Headers": [
+          "Content-Type,Authorization,X-Amz-Date,X-Api-Key,X-Amz-Security-Token",
+          ...headers
+        ].join(",")
+      },
+      body: ""
+    };
+  };
+}
+
+function corsRoute({ path, cors }: ApiRoute): awsx.apigateway.Route {
+  return {
+    path,
+    method: "OPTIONS",
+    eventHandler: createCorsHandler(cors)
+  };
+}
+
 function createRoutes(
   name: string,
   deploymentGroup: Output<string> | undefined,
   routes: ApiRoute[]
 ): awsx.apigateway.Route[] {
-  return routes.map(({ httpMethod, path, ...dispatch }) => ({
-    method: httpMethod,
-    path,
-    eventHandler:
-      dispatch.type === "named-lambda"
-        ? aws.lambda.Function.get(
-            `${name}/${httpMethod}${path}`,
-            interpolate`${deploymentGroup}-${dispatch.lambdaName}`
-          )
-        : dispatch.handler
-  }));
+  const corsRoutes = routes.filter(x => x.cors).map(corsRoute);
+  return corsRoutes.concat(
+    routes.map(({ httpMethod, path, ...dispatch }) => ({
+      path,
+      method: httpMethod,
+      eventHandler:
+        dispatch.type === "named-lambda"
+          ? aws.lambda.Function.get(
+              `${name}/${httpMethod}${path}`,
+              interpolate`${deploymentGroup}-${dispatch.lambdaName}`
+            )
+          : dispatch.handler
+    }))
+  );
 }
 
 function getMethodResource(
@@ -259,11 +297,13 @@ function defineIntegrationResponse(
     { parent }
   );
 }
+
 export interface LambdaMethodExecutionArgs {
   gateway: awsx.apigateway.API;
   httpMethod: awsx.apigateway.Method;
   path: string;
   responseModel: aws.apigateway.Model;
+  cors?: CorsSettings;
 }
 
 type NamedLambdaApiRoute = {
@@ -272,6 +312,7 @@ type NamedLambdaApiRoute = {
   path: string;
   lambdaName: string;
   responseModel?: aws.apigateway.Model;
+  cors?: CorsSettings;
 };
 
 type HandlerApiRoute = {
@@ -280,7 +321,14 @@ type HandlerApiRoute = {
   path: string;
   handler: aws.lambda.Function;
   responseModel?: aws.apigateway.Model;
+  cors?: CorsSettings;
 };
+
+export interface CorsSettings {
+  origin?: string;
+  methods?: string | string[];
+  headers?: string[];
+}
 
 export type ApiRoute = NamedLambdaApiRoute | HandlerApiRoute;
 
