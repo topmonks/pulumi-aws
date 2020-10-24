@@ -17,6 +17,10 @@ export class Api extends ComponentResource {
         routes: createRoutes(name, args.deploymentGroup, args.routes),
         restApiArgs: {
           minimumCompressionSize: 860
+        },
+        stageArgs: {
+          description: args.description,
+          cacheClusterEnabled: args.cacheEnabled
         }
       },
       { parent: this }
@@ -342,8 +346,10 @@ export type ApiRoute = NamedLambdaApiRoute | HandlerApiRoute;
 
 export interface ApiArgs {
   stageName: string;
-  deploymentGroup?: Output<string>;
   routes: ApiRoute[];
+  description?: string;
+  cacheEnabled?: boolean;
+  deploymentGroup?: Output<string>;
 }
 
 export interface CustomDomainDistributionArgs {
