@@ -20,7 +20,8 @@ export class Api extends ComponentResource {
         },
         stageArgs: {
           description: args.description,
-          cacheClusterEnabled: args.cacheEnabled
+          cacheClusterEnabled: args.cacheEnabled,
+          cacheClusterSize: args.cacheSize
         }
       },
       { parent: this }
@@ -349,6 +350,7 @@ export interface ApiArgs {
   routes: ApiRoute[];
   description?: string;
   cacheEnabled?: boolean;
+  cacheSize?: string;
   deploymentGroup?: Output<string>;
 }
 
