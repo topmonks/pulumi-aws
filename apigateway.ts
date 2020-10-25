@@ -1,11 +1,20 @@
-import { Output, interpolate } from "@pulumi/pulumi";
+import { Output, interpolate, Config } from "@pulumi/pulumi";
 import * as aws from "@pulumi/aws";
 import * as awsx from "@pulumi/awsx";
 import { ComponentResource, ResourceOptions } from "@pulumi/pulumi";
 import { getCertificate, getHostedZone } from "./website";
 
+const awsConfig = new Config("aws");
+
 export class Api extends ComponentResource {
   readonly gateway: awsx.apigateway.API;
+
+  get openApiUrl() {
+    const restApiId = this.gateway.restAPI.id;
+    const stageName = this.gateway.stage.stageName;
+    const region = awsConfig.get("region");
+    return interpolate`https://apigateway.${region}.amazonaws.com/restapis/${restApiId}/stages/${stageName}/exports/oas30`;
+  }
 
   constructor(name: string, args: ApiArgs, opts?: ResourceOptions) {
     super("topmonks:aws:apigateway:Api", name, {}, opts);
@@ -13,7 +22,7 @@ export class Api extends ComponentResource {
     this.gateway = new awsx.apigateway.API(
       name,
       {
-        stageName: "v1",
+        stageName: args.stageName,
         deploymentArgs: { description: args.description },
         routes: createRoutes(name, args.deploymentGroup, args.routes),
         restApiArgs: { minimumCompressionSize: 860 },
