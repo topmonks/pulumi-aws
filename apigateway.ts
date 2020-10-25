@@ -298,7 +298,10 @@ function defineMethodSettings(
       methodPath: interpolate`${args.path}/${args.httpMethod}`,
       settings: {
         cachingEnabled: Boolean(args.cache),
-        cacheTtlInSeconds: args.cache?.ttl
+        cacheTtlInSeconds: args.cache?.ttl,
+        requireAuthorizationForCacheControl: false,
+        cacheDataEncrypted: false,
+        unauthorizedCacheControlHeaderStrategy: "SUCCEED_WITH_RESPONSE_HEADER"
       }
     },
     { parent }
