@@ -1,6 +1,7 @@
 import { Output, interpolate, Config } from "@pulumi/pulumi";
 import * as aws from "@pulumi/aws";
 import * as awsx from "@pulumi/awsx";
+import { Parameter } from "@pulumi/awsx/apigateway/requestValidator";
 import { ComponentResource, ResourceOptions } from "@pulumi/pulumi";
 import { getCertificate, getHostedZone } from "./website";
 
@@ -240,8 +241,9 @@ function createRoutes(
 ): awsx.apigateway.Route[] {
   const corsRoutes = routes.filter(x => x.cors).map(corsRoute);
   return corsRoutes.concat(
-    routes.map(({ httpMethod, path, ...dispatch }) => ({
+    routes.map(({ httpMethod, path, requiredParameters, ...dispatch }) => ({
       path,
+      requiredParameters,
       method: httpMethod,
       eventHandler:
         dispatch.type === "named-lambda"
@@ -362,25 +364,24 @@ export interface LambdaMethodExecutionArgs {
   cache?: CacheSettings;
 }
 
-type NamedLambdaApiRoute = {
-  type: "named-lambda";
+interface BaseApiRoute {
   httpMethod: awsx.apigateway.Method;
   path: string;
-  lambdaName: string;
   responseModel?: aws.apigateway.Model;
   cors?: CorsSettings;
   cache?: CacheSettings;
-};
+  requiredParameters?: Parameter[];
+}
 
-type HandlerApiRoute = {
+interface NamedLambdaApiRoute extends BaseApiRoute {
+  type: "named-lambda";
+  lambdaName: string;
+}
+
+interface HandlerApiRoute extends BaseApiRoute {
   type: "handler";
-  httpMethod: awsx.apigateway.Method;
-  path: string;
   handler: aws.lambda.Function;
-  responseModel?: aws.apigateway.Model;
-  cors?: CorsSettings;
-  cache?: CacheSettings;
-};
+}
 
 export type ApiRoute = NamedLambdaApiRoute | HandlerApiRoute;
 
