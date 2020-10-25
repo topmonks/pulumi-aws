@@ -14,12 +14,10 @@ export class Api extends ComponentResource {
       name,
       {
         stageName: "v1",
+        deploymentArgs: { description: args.description },
         routes: createRoutes(name, args.deploymentGroup, args.routes),
-        restApiArgs: {
-          minimumCompressionSize: 860
-        },
+        restApiArgs: { minimumCompressionSize: 860 },
         stageArgs: {
-          description: args.description,
           cacheClusterEnabled: args.cacheEnabled,
           cacheClusterSize: args.cacheSize
         }
@@ -150,6 +148,7 @@ export class LambdaMethodExecution extends ComponentResource {
       args.responseModel,
       methodResource
     );
+    defineMethodSettings(this, name, args);
     defineIntegrationResponse(
       this,
       name,
@@ -168,21 +167,22 @@ function createLambdaMethodExecutions(
 ) {
   const corsRoutes: ApiRoute[] = routes
     .filter(x => x.cors)
-    .map(({ path, ...rest }) => ({
+    .map(({ path, cache, ...rest }) => ({
       ...rest,
       httpMethod: "OPTIONS" as awsx.apigateway.Method,
       responseModel: anySchemaModel,
       path
     }));
   return corsRoutes.concat(routes).map(
-    ({ httpMethod, path, responseModel }) =>
+    ({ httpMethod, path, responseModel, cache }) =>
       new LambdaMethodExecution(
         `${name}/${httpMethod}${path}`,
         {
           gateway: parent.gateway,
           responseModel: responseModel ?? anySchemaModel,
           httpMethod,
-          path
+          path,
+          cache
         },
         { parent }
       )
@@ -285,6 +285,26 @@ function defineMethodResponse(
   );
 }
 
+function defineMethodSettings(
+  parent,
+  name: string,
+  args: LambdaMethodExecutionArgs
+) {
+  new aws.apigateway.MethodSettings(
+    name,
+    {
+      restApi: args.gateway.restAPI,
+      stageName: args.gateway.stage.stageName,
+      methodPath: interpolate`${args.path}/${args.httpMethod}`,
+      settings: {
+        cachingEnabled: Boolean(args.cache),
+        cacheTtlInSeconds: args.cache?.ttl
+      }
+    },
+    { parent }
+  );
+}
+
 function defineIntegrationResponse(
   parent: LambdaMethodExecution,
   name: string,
@@ -311,12 +331,23 @@ function defineIntegrationResponse(
   );
 }
 
+export interface CorsSettings {
+  origin?: string;
+  methods?: string | string[];
+  headers?: string[];
+}
+
+export interface CacheSettings {
+  ttl: number;
+}
+
 export interface LambdaMethodExecutionArgs {
   gateway: awsx.apigateway.API;
   httpMethod: awsx.apigateway.Method;
   path: string;
   responseModel: aws.apigateway.Model;
   cors?: CorsSettings;
+  cache?: CacheSettings;
 }
 
 type NamedLambdaApiRoute = {
@@ -326,6 +357,7 @@ type NamedLambdaApiRoute = {
   lambdaName: string;
   responseModel?: aws.apigateway.Model;
   cors?: CorsSettings;
+  cache?: CacheSettings;
 };
 
 type HandlerApiRoute = {
@@ -335,13 +367,8 @@ type HandlerApiRoute = {
   handler: aws.lambda.Function;
   responseModel?: aws.apigateway.Model;
   cors?: CorsSettings;
+  cache?: CacheSettings;
 };
-
-export interface CorsSettings {
-  origin?: string;
-  methods?: string | string[];
-  headers?: string[];
-}
 
 export type ApiRoute = NamedLambdaApiRoute | HandlerApiRoute;
 
