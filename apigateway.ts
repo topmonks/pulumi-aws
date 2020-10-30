@@ -2,6 +2,7 @@ import { Output, interpolate, Config } from "@pulumi/pulumi";
 import * as aws from "@pulumi/aws";
 import * as awsx from "@pulumi/awsx";
 import { Parameter } from "@pulumi/awsx/apigateway/requestValidator";
+import { LambdaAuthorizer } from "@pulumi/awsx/apigateway/lambdaAuthorizer";
 import { ComponentResource, ResourceOptions } from "@pulumi/pulumi";
 import { getCertificate, getHostedZone } from "./website";
 
@@ -24,9 +25,11 @@ export class Api extends ComponentResource {
       name,
       {
         stageName: args.stageName,
-        deploymentArgs: { description: args.description },
         routes: createRoutes(name, args.deploymentGroup, args.routes),
-        restApiArgs: { minimumCompressionSize: 860 },
+        restApiArgs: {
+          minimumCompressionSize: 860,
+          description: args.description
+        },
         stageArgs: {
           cacheClusterEnabled: args.cacheEnabled,
           cacheClusterSize: args.cacheSize
@@ -241,18 +244,21 @@ function createRoutes(
 ): awsx.apigateway.Route[] {
   const corsRoutes = routes.filter(x => x.cors).map(corsRoute);
   return corsRoutes.concat(
-    routes.map(({ httpMethod, path, requiredParameters, ...dispatch }) => ({
-      path,
-      requiredParameters,
-      method: httpMethod,
-      eventHandler:
-        dispatch.type === "named-lambda"
-          ? aws.lambda.Function.get(
-              `${name}/${httpMethod}${path}`,
-              interpolate`${deploymentGroup}-${dispatch.lambdaName}`
-            )
-          : dispatch.handler
-    }))
+    routes.map(
+      ({ httpMethod, path, requiredParameters, authorizers, ...dispatch }) => ({
+        path,
+        requiredParameters,
+        authorizers,
+        method: httpMethod,
+        eventHandler:
+          dispatch.type === "named-lambda"
+            ? aws.lambda.Function.get(
+                `${name}/${httpMethod}${path}`,
+                interpolate`${deploymentGroup}-${dispatch.lambdaName}`
+              )
+            : dispatch.handler
+      })
+    )
   );
 }
 
@@ -371,6 +377,7 @@ interface BaseApiRoute {
   cors?: CorsSettings;
   cache?: CacheSettings;
   requiredParameters?: Parameter[];
+  authorizers?: LambdaAuthorizer[] | LambdaAuthorizer;
 }
 
 interface NamedLambdaApiRoute extends BaseApiRoute {
