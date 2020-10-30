@@ -9,7 +9,7 @@ exports.handler = function (event, context, callback) {
 
   addHeader(headers, "Strict-Transport-Security", "max-age=31536000; preload");
   addHeader(headers, "X-Content-Type-Options", "nosniff");
-  addHeader(headers, "X-Frame-Options", "DENY");
+  addHeader(headers, "X-Frame-Options", "SAMEORIGIN");
   addHeader(headers, "X-XSS-Protection", "1; mode=block");
   addHeader(
     headers,
