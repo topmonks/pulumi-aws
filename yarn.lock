@@ -92,9 +92,9 @@
     semver "^5.4.0"
 
 "@pulumi/pulumi@^2.0.0", "@pulumi/pulumi@^2.11.2":
-  version "2.12.0"
-  resolved "https://registry.yarnpkg.com/@pulumi/pulumi/-/pulumi-2.12.0.tgz#3140f2a59a8cf3c469d065f3b7370561a137d1c7"
-  integrity sha512-fx1ih8Sx/VQTGgkN1P5YZAI7+1/+Y7+YmIgPq/Z6ekyDMB5ZBO1rl8jJmPwM5KAGaf23LGWDtjKuzXwa+pqOGA==
+  version "2.13.2"
+  resolved "https://registry.yarnpkg.com/@pulumi/pulumi/-/pulumi-2.13.2.tgz#19b1089edb810c7b2b146750725423dde87b1f85"
+  integrity sha512-KpjwNm7nyzCyQrPDtx1YTLfDuhKPRDBfowgUNlSUDpDr6fFTr8dMYKpj4Dp8ukRgNhDMSQrVGIiw0Bvkiu2uqA==
   dependencies:
     "@grpc/grpc-js" "^0.6.15"
     "@pulumi/query" "^0.3.0"
