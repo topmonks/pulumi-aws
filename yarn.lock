@@ -132,9 +132,9 @@
   integrity sha512-+48LLqolaKj/WnIY1crfLseaGQMIDISBy3PTXVOZ7w/PBaRUv+H8t94++atzfoBAvorbUYz6Xq9vh1fHrg33ig==
 
 "@types/node@^14.11.8":
-  version "14.11.11"
-  resolved "https://registry.yarnpkg.com/@types/node/-/node-14.11.11.tgz#359ea52236b5ccc04a71d4001c8467178a9d3699"
-  integrity sha512-UcaAZrL8uO5GNS+NLxkYg1RiOMgdLxCXGqs+TTupltXN8rTvUEKTOpqCV3tlcAIZJXzcBQajzmjdrvuPvnuMUw==
+  version "14.14.9"
+  resolved "https://registry.yarnpkg.com/@types/node/-/node-14.14.9.tgz#04afc9a25c6ff93da14deabd65dc44485b53c8d6"
+  integrity sha512-JsoLXFppG62tWTklIoO4knA+oDTYsmqWxHRvd4lpmfQRNhX6osheUOWETP2jMoV/2bEHuMra8Pp3Dmo/stBFcw==
 
 argparse@^1.0.7:
   version "1.0.10"
