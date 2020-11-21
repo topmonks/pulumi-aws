@@ -1,6 +1,7 @@
 import * as aws from "@pulumi/aws";
 import * as pulumi from "@pulumi/pulumi";
 import * as inputs from "@pulumi/aws/types/input";
+import { Bucket } from "@pulumi/aws/s3";
 
 const websiteConfig = new pulumi.Config("topmonks_website");
 const assetsPaths: string[] = JSON.parse(
@@ -74,14 +75,49 @@ function createBucketPolicy(
   );
 }
 
+function createLambdaAssociation(
+  pathPattern: string,
+  lambdaAssociation: { lambdaArn: string; eventType: string },
+  contentBucket: Bucket,
+  securityHeadersLambdaArn: any
+) {
+  const cacheBehavior = {
+    pathPattern: pathPattern,
+    allowedMethods: ["GET", "HEAD", "OPTIONS"],
+    cachedMethods: ["GET", "HEAD", "OPTIONS"],
+    minTtl: 0,
+    defaultTtl: 86400,
+    maxTtl: 31536000,
+    // enable gzip
+    compress: true,
+    targetOriginId: contentBucket.arn,
+    viewerProtocolPolicy: "redirect-to-https",
+    forwardedValues: {
+      cookies: { forward: "none" },
+      headers: ["Origin"],
+      queryString: true
+    },
+    lambdaFunctionAssociations: [lambdaAssociation]
+  };
+  if (securityHeadersLambdaArn) {
+    cacheBehavior.lambdaFunctionAssociations.push({
+      eventType: "viewer-response",
+      lambdaArn: securityHeadersLambdaArn
+    });
+  }
+  return cacheBehavior;
+}
+
 /**
  * Creates CloudFront distribution on top of S3 website
  * @param parent {pulumi.ComponentResource} parent component
  * @param domain {string} website domain name
  * @param contentBucket {aws.s3.Bucket}
  * @param isPwa {boolean}
+ * @param assetsPaths {string[]}
  * @param assetsCachingLambdaArn {string}
  * @param securityHeadersLambdaArn {string}
+ * @param edgeLambdas {EdgeLambdaAssociation[]}
  * @returns {aws.cloudfront.Distribution}
  */
 function createCloudFront(
@@ -91,18 +127,62 @@ function createCloudFront(
   isPwa: boolean | undefined,
   assetsPaths?: string[],
   assetsCachingLambdaArn?: string | pulumi.Output<string>,
-  securityHeadersLambdaArn?: string | pulumi.Output<string>
+  securityHeadersLambdaArn?: string | pulumi.Output<string>,
+  edgeLambdas?: EdgeLambdaAssociation[]
 ) {
   const acmCertificate = getCertificate(domain);
   const customErrorResponses: pulumi.Input<
     inputs.cloudfront.DistributionCustomErrorResponse
   >[] = [];
-  if (isPwa)
+  if (isPwa) {
     customErrorResponses.push({
       errorCode: 404,
       responseCode: 200,
       responsePagePath: "/index.html"
     });
+  }
+
+  const assetsCacheBoost = pathPattern => ({
+    allowedMethods: ["GET", "HEAD", "OPTIONS"],
+    cachedMethods: ["GET", "HEAD", "OPTIONS"],
+    compress: true,
+    defaultTtl: 31536000,
+    forwardedValues: {
+      cookies: {
+        forward: "none"
+      },
+      headers: ["Origin"],
+      queryString: false
+    },
+    maxTtl: 31536000,
+    minTtl: 31536000,
+    pathPattern,
+    targetOriginId: contentBucket.arn,
+    viewerProtocolPolicy: "redirect-to-https",
+    lambdaFunctionAssociations: assetsCachingLambdaArn
+      ? [
+          // add lambda edge with cache headers for immutable assets
+          {
+            eventType: "viewer-response",
+            lambdaArn: assetsCachingLambdaArn
+          }
+        ]
+      : undefined
+  });
+  const lambdaAssociation = ({ pathPattern, lambdaAssociation }) =>
+    createLambdaAssociation(
+      pathPattern,
+      lambdaAssociation,
+      contentBucket,
+      securityHeadersLambdaArn
+    );
+  const assetsCacheBehaviors = assetsPaths?.map(assetsCacheBoost);
+  const lambdaAssociationBehavior = edgeLambdas?.map(lambdaAssociation);
+  const orderedCacheBehaviors =
+    assetsCacheBehaviors && lambdaAssociationBehavior
+      ? assetsCacheBehaviors.concat(lambdaAssociationBehavior)
+      : assetsCacheBehaviors ?? lambdaAssociationBehavior;
+
   return new aws.cloudfront.Distribution(
     `${domain}/cdn-distribution`,
     {
@@ -148,33 +228,7 @@ function createCloudFront(
             ]
           : undefined
       },
-      orderedCacheBehaviors: assetsPaths?.map(pathPattern => ({
-        allowedMethods: ["GET", "HEAD", "OPTIONS"],
-        cachedMethods: ["GET", "HEAD", "OPTIONS"],
-        compress: true,
-        defaultTtl: 31536000,
-        forwardedValues: {
-          cookies: {
-            forward: "none"
-          },
-          headers: ["Origin"],
-          queryString: false
-        },
-        maxTtl: 31536000,
-        minTtl: 31536000,
-        pathPattern,
-        targetOriginId: contentBucket.arn,
-        viewerProtocolPolicy: "redirect-to-https",
-        lambdaFunctionAssociations: assetsCachingLambdaArn
-          ? [
-              // add lambda edge with cache headers for immutable assets
-              {
-                eventType: "viewer-response",
-                lambdaArn: assetsCachingLambdaArn
-              }
-            ]
-          : undefined
-      })),
+      orderedCacheBehaviors,
       priceClass: "PriceClass_100",
       restrictions: {
         geoRestriction: {
@@ -485,7 +539,8 @@ export class Website extends pulumi.ComponentResource {
         settings.isPwa,
         settings.assetsPaths,
         settings.assetsCachingLambdaArn,
-        settings.securityHeadersLambdaArn
+        settings.securityHeadersLambdaArn,
+        settings.edgeLambdas
       );
     }
     if (!settings.dns?.disabled) {
@@ -543,6 +598,12 @@ interface WebsiteSettings {
   assetsPaths?: string[];
   assetsCachingLambdaArn?: string | pulumi.Output<string>;
   securityHeadersLambdaArn?: string | pulumi.Output<string>;
+  edgeLambdas?: EdgeLambdaAssociation[];
+}
+
+interface EdgeLambdaAssociation {
+  pathPattern: string;
+  lambdaAssociation: { lambdaArn: string; eventType: string };
 }
 
 interface RedirectWebsiteSettings {
