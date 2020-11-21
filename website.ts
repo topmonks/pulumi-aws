@@ -77,7 +77,10 @@ function createBucketPolicy(
 
 function createLambdaAssociation(
   pathPattern: string,
-  lambdaAssociation: { lambdaArn: string; eventType: string },
+  lambdaAssociation: {
+    lambdaArn: string | pulumi.Output<string>;
+    eventType: string;
+  },
   contentBucket: Bucket,
   securityHeadersLambdaArn: any
 ) {
@@ -603,7 +606,10 @@ interface WebsiteSettings {
 
 interface EdgeLambdaAssociation {
   pathPattern: string;
-  lambdaAssociation: { lambdaArn: string; eventType: string };
+  lambdaAssociation: {
+    lambdaArn: string | pulumi.Output<string>;
+    eventType: string;
+  };
 }
 
 interface RedirectWebsiteSettings {
