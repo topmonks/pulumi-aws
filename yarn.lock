@@ -63,11 +63,11 @@
   integrity sha1-p3c2C1s5oaLlEG+OhY8v0tBgxXA=
 
 "@pulumi/aws@^3.7.0":
-  version "3.8.0"
-  resolved "https://registry.yarnpkg.com/@pulumi/aws/-/aws-3.8.0.tgz#540cd1c438e2313e8b0dc2b13694d1bc29ed3d75"
-  integrity sha512-SaR9Gdcrornvi4X0fLYSGIUXnZCpO/VD8yPo5yHRAQ7LctQLJEDaRu8P5X8behsWvU62VZLH/sQa+rgVHooI4w==
+  version "3.19.2"
+  resolved "https://registry.yarnpkg.com/@pulumi/aws/-/aws-3.19.2.tgz#41839b894e510dec5af0e3279a520a35e3c23963"
+  integrity sha512-GQF2SBEGvPuqz2o6RQ4wnsdmR9Plu8bYvAsh2xx/W8U67jKCe241GV9+wE7+4svTjakxJhFzMNgDbvc36maNOQ==
   dependencies:
-    "@pulumi/pulumi" "^2.0.0"
+    "@pulumi/pulumi" "^2.15.0"
     aws-sdk "^2.0.0"
     builtin-modules "3.0.0"
     mime "^2.0.0"
@@ -91,10 +91,10 @@
     "@pulumi/pulumi" "^2.0.0"
     semver "^5.4.0"
 
-"@pulumi/pulumi@^2.0.0", "@pulumi/pulumi@^2.11.2":
-  version "2.12.0"
-  resolved "https://registry.yarnpkg.com/@pulumi/pulumi/-/pulumi-2.12.0.tgz#3140f2a59a8cf3c469d065f3b7370561a137d1c7"
-  integrity sha512-fx1ih8Sx/VQTGgkN1P5YZAI7+1/+Y7+YmIgPq/Z6ekyDMB5ZBO1rl8jJmPwM5KAGaf23LGWDtjKuzXwa+pqOGA==
+"@pulumi/pulumi@^2.0.0", "@pulumi/pulumi@^2.11.2", "@pulumi/pulumi@^2.15.0":
+  version "2.15.4"
+  resolved "https://registry.yarnpkg.com/@pulumi/pulumi/-/pulumi-2.15.4.tgz#3f57b8e7508cbd161ec363cca2b331e62c747c57"
+  integrity sha512-NRbFBbd1DgU/k2vcmJnKV8vIT7ybQBzb5T9XgSAdvbNNain1OEkR6y42cEus/sqGAf/9q9jI12EPr+/iBjii1g==
   dependencies:
     "@grpc/grpc-js" "^0.6.15"
     "@pulumi/query" "^0.3.0"
