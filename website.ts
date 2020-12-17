@@ -424,7 +424,7 @@ export function getCertificate(domain: string) {
   });
   const certificate = aws.acm.getCertificate(
     { domain: `*.${parentDomain}`, mostRecent: true, statuses: ["ISSUED"] },
-    { provider: usEast1 }
+    { provider: usEast1, async: true }
   );
   return pulumi.output(certificate);
 }
