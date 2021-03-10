@@ -298,7 +298,7 @@ function defineMethodResponse(
       },
       responseModels: { "application/json": responseModel.name }
     },
-    { parent }
+    { parent, dependsOn: [responseModel] }
   );
 }
 
