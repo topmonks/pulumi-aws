@@ -49,7 +49,7 @@ export class Api extends ComponentResource {
           title: "Any Schema"
         })
       },
-      { parent: this }
+      { parent: this, dependsOn: [this.gateway.restAPI] }
     );
 
     createLambdaMethodExecutions(name, this, anySchemaModel, args.routes);
@@ -186,7 +186,7 @@ function createLambdaMethodExecutions(
       responseModel: anySchemaModel,
       path
     }));
-  return corsRoutes.concat(routes).map(
+  return corsRoutes.concat(routes).filter(x => x.type == "named-lambda").map(
     ({ httpMethod, path, responseModel, cache }) =>
       new LambdaMethodExecution(
         `${name}/${httpMethod}${path}`,
@@ -298,7 +298,7 @@ function defineMethodResponse(
       },
       responseModels: { "application/json": responseModel.name }
     },
-    { parent, dependsOn: [responseModel] }
+    { parent, dependsOn: [responseModel, gateway] }
   );
 }
 
