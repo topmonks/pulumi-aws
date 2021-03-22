@@ -34,6 +34,13 @@ function createBucket(
       bucket: domain,
       acl: "public-read",
       website,
+      corsRules: [
+        {
+          allowedHeaders: ["*"],
+          allowedMethods: ["GET", "HEAD", "OPTIONS"],
+          allowedOrigins: ["*"]
+        }
+      ],
       forceDestroy: true
     },
     { parent }
@@ -134,9 +141,7 @@ function createCloudFront(
   edgeLambdas?: EdgeLambdaAssociation[]
 ) {
   const acmCertificate = getCertificate(domain);
-  const customErrorResponses: pulumi.Input<
-    inputs.cloudfront.DistributionCustomErrorResponse
-  >[] = [];
+  const customErrorResponses: pulumi.Input<inputs.cloudfront.DistributionCustomErrorResponse>[] = [];
   if (isPwa) {
     customErrorResponses.push({
       errorCode: 404,
