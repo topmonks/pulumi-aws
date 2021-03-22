@@ -37,7 +37,7 @@ function createBucket(
       corsRules: [
         {
           allowedHeaders: ["*"],
-          allowedMethods: ["GET", "HEAD", "OPTIONS"],
+          allowedMethods: ["GET", "HEAD"],
           allowedOrigins: ["*"]
         }
       ],
