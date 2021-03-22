@@ -104,7 +104,11 @@ function createLambdaAssociation(
     viewerProtocolPolicy: "redirect-to-https",
     forwardedValues: {
       cookies: { forward: "none" },
-      headers: ["Origin"],
+      headers: [
+        "Origin",
+        "Access-Control-Request-Headers",
+        "Access-Control-Request-Method"
+      ],
       queryString: true
     },
     lambdaFunctionAssociations: [lambdaAssociation]
@@ -219,6 +223,11 @@ function createCloudFront(
         cachedMethods: ["GET", "HEAD"],
         forwardedValues: {
           cookies: { forward: "none" },
+          headers: [
+            "Origin",
+            "Access-Control-Request-Headers",
+            "Access-Control-Request-Method"
+          ],
           queryString: false
         },
         minTtl: 0,
