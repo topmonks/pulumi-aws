@@ -1,6 +1,6 @@
 {
   "name": "@topmonks/pulumi-aws",
-  "version": "1.7.7",
+  "version": "1.7.8",
   "description": "Custom AWS Resources for Pulumi",
   "keywords": [
     "pulumi",
@@ -10,9 +10,9 @@
   "author": "TopMonks <info@topmonks.com>",
   "license": "EPL-2.0",
   "peerDependencies": {
-    "@pulumi/aws": "^1.0.0 || ^2.0.0 || ^3.0.0",
-    "@pulumi/awsx": "^0.22.0 || ^1.0.0",
-    "@pulumi/pulumi": "^1.9.1 || ^2.0.0"
+    "@pulumi/aws": "^1.0.0 || ^2.0.0 || ^3.0.0 || ^4.0.0",
+    "@pulumi/awsx": "^0.22.0 || ^0.30.00 || ^1.0.0",
+    "@pulumi/pulumi": "^1.9.1 || ^2.0.0 || ^3.0.0"
   },
   "devDependencies": {
     "@pulumi/aws": "^3.7.0",
