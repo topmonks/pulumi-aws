@@ -535,49 +535,54 @@ export class Website extends pulumi.ComponentResource {
     settings: WebsiteSettings,
     opts?: pulumi.ComponentResourceOptions
   ) {
-    settings = {
-      assetsPaths,
-      assetsCachingLambdaArn,
-      securityHeadersLambdaArn,
-      ...settings
-    };
-    const website = new Website(domain, settings, opts);
-    const contentBucket = createBucket(website, domain, settings.bucket || {});
-    website.contentBucket = contentBucket;
-    website.contentBucketPolicy = createBucketPolicy(
-      website,
-      domain,
-      contentBucket
-    );
-    if (!settings.cdn?.disabled) {
-      website.cdn = createCloudFront(
+    try {
+      settings = {
+        assetsPaths,
+        assetsCachingLambdaArn,
+        securityHeadersLambdaArn,
+        ...settings
+      };
+      const website = new Website(domain, settings, opts);
+      const contentBucket = createBucket(website, domain, settings.bucket || {});
+      website.contentBucket = contentBucket;
+      website.contentBucketPolicy = createBucketPolicy(
         website,
         domain,
-        contentBucket,
-        settings.isPwa,
-        settings.assetsPaths,
-        settings.assetsCachingLambdaArn,
-        settings.securityHeadersLambdaArn,
-        settings.edgeLambdas
+        contentBucket
       );
-    }
-    if (!settings.dns?.disabled) {
-      website.dnsRecords = createAliasRecords(
-        website,
-        domain,
-        contentBucket.bucketDomainName
-      );
-    }
+      if (!settings.cdn?.disabled) {
+        website.cdn = createCloudFront(
+          website,
+          domain,
+          contentBucket,
+          settings.isPwa,
+          settings.assetsPaths,
+          settings.assetsCachingLambdaArn,
+          settings.securityHeadersLambdaArn,
+          settings.edgeLambdas
+        );
+      }
+      if (!settings.dns?.disabled) {
+        website.dnsRecords = createAliasRecords(
+          website,
+          domain,
+          contentBucket.bucketDomainName
+        );
+      }
 
-    const outputs: pulumi.Inputs = {
-      contentBucketUri: website.s3BucketUri,
-      s3WebsiteUrl: website.s3WebsiteUrl,
-      url: website.url,
-      domain: website.domain,
-      cloudFrontId: website.cloudFrontId
-    };
-    website.registerOutputs(outputs);
-    return website;
+      const outputs: pulumi.Inputs = {
+        contentBucketUri: website.s3BucketUri,
+        s3WebsiteUrl: website.s3WebsiteUrl,
+        url: website.url,
+        domain: website.domain,
+        cloudFrontId: website.cloudFrontId
+      };
+      website.registerOutputs(outputs);
+      return website;
+    } catch (err) {
+      console.error(err);
+      return null;
+    }
   }
 
   static createRedirect(
@@ -585,25 +590,30 @@ export class Website extends pulumi.ComponentResource {
     settings: RedirectWebsiteSettings,
     opts?: pulumi.ComponentResourceOptions
   ): Website {
-    const bucketSettings = {
-      website: {
-        redirectAllRequestsTo: settings.target
-      }
-    };
-    const website = new Website(domain, { bucket: bucketSettings }, opts);
-    const bucket = (website.contentBucket = createBucket(
-      website,
-      domain,
-      bucketSettings
-    ));
-    website.contentBucketPolicy = createBucketPolicy(website, domain, bucket);
-    website.cdn = createCloudFront(website, domain, bucket, false);
-    website.dnsRecords = createAliasRecords(
-      website,
-      domain,
-      bucket.bucketDomainName
-    );
-    return website;
+    try {
+      const bucketSettings = {
+        website: {
+          redirectAllRequestsTo: settings.target
+        }
+      };
+      const website = new Website(domain, { bucket: bucketSettings }, opts);
+      const bucket = (website.contentBucket = createBucket(
+        website,
+        domain,
+        bucketSettings
+      ));
+      website.contentBucketPolicy = createBucketPolicy(website, domain, bucket);
+      website.cdn = createCloudFront(website, domain, bucket, false);
+      website.dnsRecords = createAliasRecords(
+        website,
+        domain,
+        bucket.bucketDomainName
+      );
+      return website;
+    } catch (err) {
+      console.error(err);
+      return null;
+    }
   }
 }
 

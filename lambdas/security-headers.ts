@@ -17,29 +17,34 @@ export class SecurityHeadersLambda extends pulumi.ComponentResource {
   }
 
   static create(name: string) {
-    const role = createRole(name);
+    try {
+      const role = createRole(name);
 
-    // Some resources _must_ be put in us-east-1, such as Lambda at Edge.
-    const awsUsEast1 = new aws.Provider(`${name}-us-east-1`, {
-      region: "us-east-1"
-    });
-    const lambda = new aws.lambda.Function(
-      `${name}-function`,
-      {
-        publish: true,
-        role: role.arn,
-        timeout: 5,
-        handler: "index.handler",
-        runtime: aws.lambda.Runtime.NodeJS12dX,
-        code: new pulumi.asset.AssetArchive({
-          ".": new pulumi.asset.FileArchive(
-            path.resolve(__dirname, "./security-headers")
-          )
-        })
-      },
-      { provider: awsUsEast1 }
-    );
+      // Some resources _must_ be put in us-east-1, such as Lambda at Edge.
+      const awsUsEast1 = new aws.Provider(`${name}-us-east-1`, {
+        region: "us-east-1"
+      });
+      const lambda = new aws.lambda.Function(
+        `${name}-function`,
+        {
+          publish: true,
+          role: role.arn,
+          timeout: 5,
+          handler: "index.handler",
+          runtime: aws.lambda.Runtime.NodeJS12dX,
+          code: new pulumi.asset.AssetArchive({
+            ".": new pulumi.asset.FileArchive(
+              path.resolve(__dirname, "./security-headers")
+            )
+          })
+        },
+        { provider: awsUsEast1 }
+      );
 
-    return new SecurityHeadersLambda(name, lambda);
+      return new SecurityHeadersLambda(name, lambda);
+    } catch (err) {
+      console.error(err);
+      return null;
+    }
   }
 }
