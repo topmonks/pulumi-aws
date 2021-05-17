@@ -357,10 +357,20 @@ export function getHostedZone(domain: string) {
  */
 export function createCertificate(domain: string) {
   const parentDomain = getParentDomain(domain);
-  const usEast1 = new aws.Provider(`${domain}/provider/us-east-1`, {
-    profile: aws.config.profile,
-    region: aws.USEast1Region
-  });
+  const usEast1 = new aws.Provider(
+    `${domain}/provider/us-east-1`,
+    {
+      profile: aws.config.profile,
+      region: aws.USEast1Region,
+    },
+    {
+      customTimeouts: {
+        create: "5m",
+        delete: "5m",
+        update: "5m"
+      }
+    }
+  );
 
   const certificate = new aws.acm.Certificate(
     `${parentDomain}-certificate`,
@@ -433,10 +443,20 @@ export function createCertificate(domain: string) {
  */
 export function getCertificate(domain: string) {
   const parentDomain = getParentDomain(domain);
-  const usEast1 = new aws.Provider(`${domain}/get-provider/us-east-1`, {
-    profile: aws.config.profile,
-    region: aws.USEast1Region
-  });
+  const usEast1 = new aws.Provider(
+    `${domain}/get-provider/us-east-1`,
+    {
+      profile: aws.config.profile,
+      region: aws.USEast1Region
+    },
+    {
+      customTimeouts: {
+        create: "5m",
+        delete: "5m",
+        update: "5m"
+      }
+    }
+  );
   const certificate = aws.acm.getCertificate(
     { domain: `*.${parentDomain}`, mostRecent: true, statuses: ["ISSUED"] },
     { provider: usEast1, async: true }
@@ -543,7 +563,11 @@ export class Website extends pulumi.ComponentResource {
         ...settings
       };
       const website = new Website(domain, settings, opts);
-      const contentBucket = createBucket(website, domain, settings.bucket || {});
+      const contentBucket = createBucket(
+        website,
+        domain,
+        settings.bucket || {}
+      );
       website.contentBucket = contentBucket;
       website.contentBucketPolicy = createBucketPolicy(
         website,
