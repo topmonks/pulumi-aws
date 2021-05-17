@@ -142,9 +142,10 @@ function createCloudFront(
   assetsPaths?: string[],
   assetsCachingLambdaArn?: string | pulumi.Output<string>,
   securityHeadersLambdaArn?: string | pulumi.Output<string>,
-  edgeLambdas?: EdgeLambdaAssociation[]
+  edgeLambdas?: EdgeLambdaAssociation[],
+  provider?: aws.Provider
 ) {
-  const acmCertificate = getCertificate(domain);
+  const acmCertificate = getCertificate(domain, provider);
   const customErrorResponses: pulumi.Input<inputs.cloudfront.DistributionCustomErrorResponse>[] = [];
   if (isPwa) {
     customErrorResponses.push({
@@ -353,11 +354,12 @@ export function getHostedZone(domain: string) {
  * This creates certificate for root domain with wildcard for all subdomains.
  * You will need to have just one instance per all your stacks.
  * @param domain {string} website domain name
+ * @param provider {aws.Provider}
  * @returns {pulumi.Output<pulumi.Unwrap<aws.acm.GetCertificateResult>>}
  */
-export function createCertificate(domain: string) {
+export function createCertificate(domain: string, provider?: aws.Provider) {
   const parentDomain = getParentDomain(domain);
-  const usEast1 = new aws.Provider(
+  const usEast1 = provider ?? new aws.Provider(
     `${domain}/provider/us-east-1`,
     {
       profile: aws.config.profile,
@@ -441,9 +443,9 @@ export function createCertificate(domain: string) {
  * @param domain {string} website domain name
  * @returns {pulumi.Output<pulumi.Unwrap<aws.acm.GetCertificateResult>>}
  */
-export function getCertificate(domain: string) {
+export function getCertificate(domain: string, provider?: aws.Provider) {
   const parentDomain = getParentDomain(domain);
-  const usEast1 = new aws.Provider(
+  const usEast1 = provider ?? new aws.Provider(
     `${domain}/get-provider/us-east-1`,
     {
       profile: aws.config.profile,
