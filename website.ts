@@ -359,20 +359,12 @@ export function getHostedZone(domain: string) {
  */
 export function createCertificate(domain: string, provider?: aws.Provider) {
   const parentDomain = getParentDomain(domain);
-  const usEast1 = provider ?? new aws.Provider(
-    `${domain}/provider/us-east-1`,
-    {
+  const usEast1 =
+    provider ??
+    new aws.Provider(`${domain}/provider/us-east-1`, {
       profile: aws.config.profile,
-      region: aws.USEast1Region,
-    },
-    {
-      customTimeouts: {
-        create: "5m",
-        delete: "5m",
-        update: "5m"
-      }
-    }
-  );
+      region: aws.USEast1Region
+    });
 
   const certificate = new aws.acm.Certificate(
     `${parentDomain}-certificate`,
@@ -445,20 +437,12 @@ export function createCertificate(domain: string, provider?: aws.Provider) {
  */
 export function getCertificate(domain: string, provider?: aws.Provider) {
   const parentDomain = getParentDomain(domain);
-  const usEast1 = provider ?? new aws.Provider(
-    `${domain}/get-provider/us-east-1`,
-    {
+  const usEast1 =
+    provider ??
+    new aws.Provider(`${domain}/get-provider/us-east-1`, {
       profile: aws.config.profile,
       region: aws.USEast1Region
-    },
-    {
-      customTimeouts: {
-        create: "5m",
-        delete: "5m",
-        update: "5m"
-      }
-    }
-  );
+    });
   const certificate = aws.acm.getCertificate(
     { domain: `*.${parentDomain}`, mostRecent: true, statuses: ["ISSUED"] },
     { provider: usEast1, async: true }
@@ -585,7 +569,8 @@ export class Website extends pulumi.ComponentResource {
           settings.assetsPaths,
           settings.assetsCachingLambdaArn,
           settings.securityHeadersLambdaArn,
-          settings.edgeLambdas
+          settings.edgeLambdas,
+          settings.certificateProvider
         );
       }
       if (!settings.dns?.disabled) {
@@ -622,7 +607,14 @@ export class Website extends pulumi.ComponentResource {
           redirectAllRequestsTo: settings.target
         }
       };
-      const website = new Website(domain, { bucket: bucketSettings }, opts);
+      const website = new Website(
+        domain,
+        {
+          bucket: bucketSettings,
+          certificateProvider: settings.certificateProvider
+        },
+        opts
+      );
       const bucket = (website.contentBucket = createBucket(
         website,
         domain,
@@ -653,6 +645,7 @@ interface WebsiteSettings {
   assetsCachingLambdaArn?: string | pulumi.Output<string>;
   securityHeadersLambdaArn?: string | pulumi.Output<string>;
   edgeLambdas?: EdgeLambdaAssociation[];
+  certificateProvider?: aws.Provider;
 }
 
 interface EdgeLambdaAssociation {
@@ -665,6 +658,7 @@ interface EdgeLambdaAssociation {
 
 interface RedirectWebsiteSettings {
   target: string;
+  certificateProvider?: aws.Provider;
 }
 
 interface DisableSetting {
