@@ -279,9 +279,10 @@ function createCloudFront(
 function createAliasRecords(
   parent: Website,
   domain: string,
-  cname: pulumi.Output<string>
+  cname: pulumi.Output<string>,
+  provider?: aws.Provider
 ): aws.route53.Record[] {
-  const hostedZone = getHostedZone(domain);
+  const hostedZone = getHostedZone(domain, provider);
   const cdn = parent.cdn;
   if (!cdn) {
     const args: aws.route53.RecordArgs = {
@@ -291,7 +292,9 @@ function createAliasRecords(
       type: "CNAME",
       records: [cname]
     };
-    return [new aws.route53.Record(`${domain}/dns-record`, args, { parent })];
+    return [
+      new aws.route53.Record(`${domain}/dns-record`, args, { parent, provider })
+    ];
   }
 
   const args = (type: string) => ({
@@ -307,45 +310,65 @@ function createAliasRecords(
     ]
   });
   return [
-    new aws.route53.Record(`${domain}/dns-record`, args("A"), { parent }),
+    new aws.route53.Record(`${domain}/dns-record`, args("A"), {
+      parent,
+      provider
+    }),
     new aws.route53.Record(`${domain}/dns-record-ipv6`, args("AAAA"), {
-      parent
+      parent,
+      provider
     })
   ];
 }
 
-export function createTxtRecord(name: string, domain: string, value: string) {
-  const hostedZone = getHostedZone(domain);
-  return new aws.route53.Record(`${domain}/txt-record-${name}`, {
-    name: hostedZone.apply(x => x.name),
-    type: "TXT",
-    zoneId: hostedZone.apply(x => x.zoneId),
-    records: [value],
-    ttl: 3600
-  });
+export function createTxtRecord(
+  name: string,
+  domain: string,
+  value: string,
+  provider?: aws.Provider
+) {
+  const hostedZone = getHostedZone(domain, provider);
+  return new aws.route53.Record(
+    `${domain}/txt-record-${name}`,
+    {
+      name: hostedZone.apply(x => x.name),
+      type: "TXT",
+      zoneId: hostedZone.apply(x => x.zoneId),
+      records: [value],
+      ttl: 3600
+    },
+    { provider }
+  );
 }
 
-export function createGoogleMxRecords(domain: string) {
-  const hostedZone = getHostedZone(domain);
-  return new aws.route53.Record(`${domain}/google-mx-records`, {
-    name: hostedZone.apply(x => x.name),
-    type: "MX",
-    zoneId: hostedZone.apply(x => x.zoneId),
-    records: [
-      "1 ASPMX.L.GOOGLE.COM.",
-      "5 ALT1.ASPMX.L.GOOGLE.COM.",
-      "5 ALT2.ASPMX.L.GOOGLE.COM.",
-      "10 ALT3.ASPMX.L.GOOGLE.COM.",
-      "10 ALT4.ASPMX.L.GOOGLE.COM."
-    ],
-    ttl: 3600
-  });
+export function createGoogleMxRecords(domain: string, provider?: aws.Provider) {
+  const hostedZone = getHostedZone(domain, provider);
+  return new aws.route53.Record(
+    `${domain}/google-mx-records`,
+    {
+      name: hostedZone.apply(x => x.name),
+      type: "MX",
+      zoneId: hostedZone.apply(x => x.zoneId),
+      records: [
+        "1 ASPMX.L.GOOGLE.COM.",
+        "5 ALT1.ASPMX.L.GOOGLE.COM.",
+        "5 ALT2.ASPMX.L.GOOGLE.COM.",
+        "10 ALT3.ASPMX.L.GOOGLE.COM.",
+        "10 ALT4.ASPMX.L.GOOGLE.COM."
+      ],
+      ttl: 3600
+    },
+    { provider }
+  );
 }
 
-export function getHostedZone(domain: string) {
-  const hostedZone = aws.route53.getZone({
-    name: getRootDomain(domain)
-  });
+export function getHostedZone(domain: string, provider?: aws.Provider) {
+  const hostedZone = aws.route53.getZone(
+    {
+      name: getRootDomain(domain)
+    },
+    { provider }
+  );
   return pulumi.output(hostedZone);
 }
 
