@@ -16,6 +16,7 @@ exports.handler = function (event, context, callback) {
     "Referrer-Policy",
     "no-referrer, strict-origin-when-cross-origin"
   );
+  addHeader(headers, "Permissions-Policy", "interest-cohort=()");
 
   // Pinned Keys are the Amazon intermediate: "s:/C=US/O=Amazon/OU=Server CA 1B/CN=Amazon"
   //   and LetsEncrypt "Let’s Encrypt Authority X1 (IdenTrust cross-signed)"
