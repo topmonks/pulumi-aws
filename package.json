@@ -18,7 +18,7 @@
     "@pulumi/aws": "4.21.1",
     "@pulumi/awsx": "0.31.0",
     "@pulumi/pulumi": "3.13.0",
-    "@types/node": "16.9.6",
+    "@types/node": "16.11.0",
     "eslint": "7.32.0",
     "eslint-config-prettier": "8.3.0",
     "eslint-plugin-es": "4.1.0",
