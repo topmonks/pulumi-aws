@@ -378,9 +378,10 @@ export function getHostedZone(domain: string, provider?: aws.Provider) {
  * You will need to have just one instance per all your stacks.
  * @param domain {string} website domain name
  * @param provider {aws.Provider}
+ * @param options {{caaRecords: string[]}}
  * @returns {pulumi.Output<pulumi.Unwrap<aws.acm.GetCertificateResult>>}
  */
-export function createCertificate(domain: string, provider?: aws.Provider) {
+export function createCertificate(domain: string, provider?: aws.Provider, {caaRecords} = {caaRecords: []}) {
   const parentDomain = getParentDomain(domain);
   const usEast1 =
     provider ??
@@ -422,7 +423,8 @@ export function createCertificate(domain: string, provider?: aws.Provider) {
       `0 issuewild "amazontrust.com"`,
       `0 issuewild "awstrust.com"`,
       `0 issuewild "amazonaws.com"`,
-      `0 iodef "mailto:admin@topmonks.com"`
+      `0 iodef "mailto:admin@topmonks.com"`,
+      ...caaRecords
     ],
     ttl: 3600
   });
