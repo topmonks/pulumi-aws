@@ -38,10 +38,10 @@
     minimatch "^3.0.4"
     strip-json-comments "^3.1.1"
 
-"@grpc/grpc-js@^1.2.7":
-  version "1.3.7"
-  resolved "https://registry.yarnpkg.com/@grpc/grpc-js/-/grpc-js-1.3.7.tgz#58b687aff93b743aafde237fd2ee9a3259d7f2d8"
-  integrity sha512-CKQVuwuSPh40tgOkR7c0ZisxYRiN05PcKPW72mQL5y++qd7CwBRoaJZvU5xfXnCJDFBmS3qZGQ71Frx6Ofo2XA==
+"@grpc/grpc-js@~1.3.8":
+  version "1.3.8"
+  resolved "https://registry.yarnpkg.com/@grpc/grpc-js/-/grpc-js-1.3.8.tgz#0d7dce9de7aeb20702a28f0704e61b0bf34061c1"
+  integrity sha512-4qJqqn+CU/nBydz9ePJP+oa8dz0U42Ut/GejlbyaQ1xTkynCc+ndNHHnISlNeHawDsv4MOAyP3mV/EnDNUw2zA==
   dependencies:
     "@types/node" ">=12.12.47"
 
@@ -146,12 +146,12 @@
     "@pulumi/pulumi" "^3.0.0"
     semver "^5.4.0"
 
-"@pulumi/pulumi@3.13.0", "@pulumi/pulumi@^3.0.0":
-  version "3.13.0"
-  resolved "https://registry.yarnpkg.com/@pulumi/pulumi/-/pulumi-3.13.0.tgz#e924c05d86cb5c00fd03506f0ace57b481edf883"
-  integrity sha512-o168kbvrO9L5K32J3bmZ3HSDO9V+TcgdqT7rLyGpijKm3NfzXfeUoPrVtbxVRL0Me9+u07ZR/rlTmA4n7vVU9Q==
+"@pulumi/pulumi@3.20.0", "@pulumi/pulumi@^3.0.0":
+  version "3.20.0"
+  resolved "https://registry.yarnpkg.com/@pulumi/pulumi/-/pulumi-3.20.0.tgz#176c10ea9a7451da53050180a76f6b3541f91404"
+  integrity sha512-SMvr0XcF/jWtLPFGxmLz9OzRtiBWHnr2QPQ3X3v4WGTBWuCvktAtPAkNUwxxchxHWk2/UOqflLsgYjkxBPpieg==
   dependencies:
-    "@grpc/grpc-js" "^1.2.7"
+    "@grpc/grpc-js" "~1.3.8"
     "@logdna/tail-file" "^2.0.6"
     "@pulumi/query" "^0.3.0"
     google-protobuf "^3.5.0"
