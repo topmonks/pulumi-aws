@@ -229,7 +229,7 @@ function createCloudFront(
             "Access-Control-Request-Headers",
             "Access-Control-Request-Method"
           ],
-          queryString: false
+          queryString: true
         },
         minTtl: 0,
         defaultTtl: 86400,
