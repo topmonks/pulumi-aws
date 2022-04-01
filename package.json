@@ -1,6 +1,6 @@
 {
   "name": "@topmonks/pulumi-aws",
-  "version": "1.10.1",
+  "version": "1.10.2",
   "description": "Custom AWS Resources for Pulumi",
   "keywords": [
     "pulumi",
@@ -17,7 +17,7 @@
   "devDependencies": {
     "@pulumi/aws": "4.21.1",
     "@pulumi/awsx": "0.31.0",
-    "@pulumi/pulumi": "3.13.0",
+    "@pulumi/pulumi": "3.28.0",
     "@types/node": "16.9.6",
     "eslint": "7.32.0",
     "eslint-config-prettier": "8.3.0",
