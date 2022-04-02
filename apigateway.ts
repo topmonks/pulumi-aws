@@ -65,7 +65,7 @@ export class CustomDomainDistribution extends ComponentResource {
   readonly dnsRecordIp6: aws.route53.Record;
   readonly mapping: aws.apigateway.BasePathMapping;
 
-  get url() {
+  get url(): Output<string> {
     return this.mapping.domainName.apply(x => `https://${x}/`);
   }
 
@@ -186,20 +186,23 @@ function createLambdaMethodExecutions(
       responseModel: anySchemaModel,
       path
     }));
-  return corsRoutes.concat(routes).filter(x => x.type == "named-lambda").map(
-    ({ httpMethod, path, responseModel, cache }) =>
-      new LambdaMethodExecution(
-        `${name}/${httpMethod}${path}`,
-        {
-          gateway: parent.gateway,
-          responseModel: responseModel ?? anySchemaModel,
-          httpMethod,
-          path,
-          cache
-        },
-        { parent }
-      )
-  );
+  return corsRoutes
+    .concat(routes)
+    .filter(x => x.type == "named-lambda")
+    .map(
+      ({ httpMethod, path, responseModel, cache }) =>
+        new LambdaMethodExecution(
+          `${name}/${httpMethod}${path}`,
+          {
+            gateway: parent.gateway,
+            responseModel: responseModel ?? anySchemaModel,
+            httpMethod,
+            path,
+            cache
+          },
+          { parent }
+        )
+    );
 }
 
 function createCorsHandler(
