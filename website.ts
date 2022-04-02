@@ -2,6 +2,7 @@ import * as aws from "@pulumi/aws";
 import * as pulumi from "@pulumi/pulumi";
 import * as inputs from "@pulumi/aws/types/input";
 import { Bucket } from "@pulumi/aws/s3";
+import { ComponentResource, Output } from "@pulumi/pulumi";
 
 const websiteConfig = new pulumi.Config("topmonks_website");
 const assetsPaths: string[] = JSON.parse(
@@ -82,72 +83,41 @@ function createBucketPolicy(
   );
 }
 
-function createLambdaAssociation(
-  pathPattern: string,
-  lambdaAssociation: {
-    lambdaArn: string | pulumi.Output<string>;
-    eventType: string;
-  },
-  contentBucket: Bucket,
-  securityHeadersLambdaArn: any
-) {
-  const cacheBehavior = {
-    pathPattern: pathPattern,
-    allowedMethods: ["GET", "HEAD", "OPTIONS"],
-    cachedMethods: ["GET", "HEAD", "OPTIONS"],
-    minTtl: 0,
-    defaultTtl: 86400,
-    maxTtl: 31536000,
-    // enable gzip
-    compress: true,
-    targetOriginId: contentBucket.arn,
-    viewerProtocolPolicy: "redirect-to-https",
-    forwardedValues: {
-      cookies: { forward: "none" },
-      headers: [
-        "Origin",
-        "Access-Control-Request-Headers",
-        "Access-Control-Request-Method"
-      ],
-      queryString: true
-    },
-    lambdaFunctionAssociations: [lambdaAssociation]
-  };
-  if (securityHeadersLambdaArn) {
-    cacheBehavior.lambdaFunctionAssociations.push({
-      eventType: "viewer-response",
-      lambdaArn: securityHeadersLambdaArn
-    });
-  }
-  return cacheBehavior;
-}
-
 /**
  * Creates CloudFront distribution on top of S3 website
  * @param parent {pulumi.ComponentResource} parent component
  * @param domain {string} website domain name
  * @param contentBucket {aws.s3.Bucket}
- * @param isPwa {boolean}
- * @param assetsPaths {string[]}
- * @param assetsCachingLambdaArn {string}
- * @param securityHeadersLambdaArn {string}
- * @param edgeLambdas {EdgeLambdaAssociation[]}
+ * @param isSPA {boolean} If `true` it will respond with `index.html` for on every request.
+ * @param assetsPaths? {string[]} Array of paths that will be cache-boosted
+ * @param assetsCachingLambdaArn? {string}
+ * @param securityHeadersLambdaArn? {string}
+ * @param edgeLambdas? {EdgeLambdaAssociation[]}
+ * @param cachePolicyId? {Promise<string> | pulumi.Output<string> | string}
+ * @param originRequestPolicyId? {Promise<string> | pulumi.Output<string> | string}
+ * @param responseHeadersPolicyId? {Promise<string> | pulumi.Output<string> | string}
+ * @param provider? {aws.Provider}
  * @returns {aws.cloudfront.Distribution}
  */
 function createCloudFront(
-  parent: pulumi.ComponentResource,
+  parent: ComponentResource,
   domain: string,
-  contentBucket: aws.s3.Bucket,
-  isPwa: boolean | undefined,
+  contentBucket: Bucket,
+  isSPA: boolean | undefined,
   assetsPaths?: string[],
-  assetsCachingLambdaArn?: string | pulumi.Output<string>,
-  securityHeadersLambdaArn?: string | pulumi.Output<string>,
+  assetsCachingLambdaArn?: string | Output<string>,
+  securityHeadersLambdaArn?: string | Output<string>,
   edgeLambdas?: EdgeLambdaAssociation[],
+  cachePolicyId?: Promise<string> | Output<string> | string,
+  originRequestPolicyId?: Promise<string> | Output<string> | string,
+  responseHeadersPolicyId?: Promise<string> | Output<string> | string,
   provider?: aws.Provider
 ) {
   const acmCertificate = getCertificate(domain, provider);
-  const customErrorResponses: pulumi.Input<inputs.cloudfront.DistributionCustomErrorResponse>[] = [];
-  if (isPwa) {
+  const customErrorResponses: pulumi.Input<inputs.cloudfront.DistributionCustomErrorResponse>[] =
+    [];
+  if (isSPA) {
+    // return SPA page for every request
     customErrorResponses.push({
       errorCode: 404,
       responseCode: 200,
@@ -222,19 +192,24 @@ function createCloudFront(
         viewerProtocolPolicy: "redirect-to-https",
         allowedMethods: ["GET", "HEAD"],
         cachedMethods: ["GET", "HEAD"],
-        forwardedValues: {
-          cookies: { forward: "none" },
-          headers: [
-            "Origin",
-            "Access-Control-Request-Headers",
-            "Access-Control-Request-Method"
-          ],
-          queryString: true
-        },
-        minTtl: 0,
-        defaultTtl: 86400,
-        maxTtl: 31536000,
-        // enable gzip
+        cachePolicyId,
+        originRequestPolicyId,
+        responseHeadersPolicyId,
+        forwardedValues: cachePolicyId
+          ? undefined
+          : {
+              cookies: { forward: "none" },
+              headers: [
+                "Origin",
+                "Access-Control-Request-Headers",
+                "Access-Control-Request-Method"
+              ],
+              queryString: true
+            },
+        minTtl: cachePolicyId ? undefined : 0,
+        defaultTtl: cachePolicyId ? undefined : 86400,
+        maxTtl: cachePolicyId ? undefined : 31536000,
+        // enable gzip and brotli
         compress: true,
         lambdaFunctionAssociations: securityHeadersLambdaArn
           ? [
@@ -267,13 +242,54 @@ function createCloudFront(
   );
 }
 
+function createLambdaAssociation(
+  pathPattern: string,
+  lambdaAssociation: {
+    lambdaArn: string | pulumi.Output<string>;
+    eventType: string;
+  },
+  contentBucket: Bucket,
+  securityHeadersLambdaArn: any
+) {
+  const cacheBehavior = {
+    pathPattern: pathPattern,
+    allowedMethods: ["GET", "HEAD", "OPTIONS"],
+    cachedMethods: ["GET", "HEAD", "OPTIONS"],
+    minTtl: 0,
+    defaultTtl: 86400,
+    maxTtl: 31536000,
+    // enable gzip
+    compress: true,
+    targetOriginId: contentBucket.arn,
+    viewerProtocolPolicy: "redirect-to-https",
+    forwardedValues: {
+      cookies: { forward: "none" },
+      headers: [
+        "Origin",
+        "Access-Control-Request-Headers",
+        "Access-Control-Request-Method"
+      ],
+      queryString: true
+    },
+    lambdaFunctionAssociations: [lambdaAssociation]
+  };
+  if (securityHeadersLambdaArn) {
+    cacheBehavior.lambdaFunctionAssociations.push({
+      eventType: "viewer-response",
+      lambdaArn: securityHeadersLambdaArn
+    });
+  }
+  return cacheBehavior;
+}
+
 /**
  * Creates a new Route53 DNS record pointing the domain or the CloudFront distribution.
- * For CloudFront distribution ALIAS record is created. Otherwise CNAME.
- * This allowes to have naked domain websites.
+ * For CloudFront distribution ALIAS record is created. Otherwise, CNAME.
+ * This allows to have naked domain websites.
  * @param parent {pulumi.ComponentResource} parent component
  * @param domain {string} website domain name
  * @param cname {pulumi.Output<string>} aliased domain name
+ * @param provider {aws.Provider}
  * @returns {aws.route53.Record[]}
  */
 function createAliasRecords(
@@ -321,6 +337,13 @@ function createAliasRecords(
   ];
 }
 
+/**
+ * Creates TXT record in Route 53
+ * @param name {string}
+ * @param domain {string}
+ * @param value {string}
+ * @param provider {aws.Provider}
+ */
 export function createTxtRecord(
   name: string,
   domain: string,
@@ -341,6 +364,11 @@ export function createTxtRecord(
   );
 }
 
+/**
+ * Creates MX record in Route 53 for Google Workspace purpose
+ * @param domain {string}
+ * @param provider {aws.Provider}
+ */
 export function createGoogleMxRecords(domain: string, provider?: aws.Provider) {
   const hostedZone = getHostedZone(domain, provider);
   return new aws.route53.Record(
@@ -381,7 +409,11 @@ export function getHostedZone(domain: string, provider?: aws.Provider) {
  * @param options {{caaRecords: string[]}}
  * @returns {pulumi.Output<pulumi.Unwrap<aws.acm.GetCertificateResult>>}
  */
-export function createCertificate(domain: string, provider?: aws.Provider, {caaRecords} = {caaRecords: []}) {
+export function createCertificate(
+  domain: string,
+  provider?: aws.Provider,
+  { caaRecords } = { caaRecords: [] }
+) {
   const parentDomain = getParentDomain(domain);
   const usEast1 =
     provider ??
@@ -458,6 +490,7 @@ export function createCertificate(domain: string, provider?: aws.Provider, {caaR
 /**
  * Gets Widlcard certificate for top domain
  * @param domain {string} website domain name
+ * @param provider {aws.Provider}
  * @returns {pulumi.Output<pulumi.Unwrap<aws.acm.GetCertificateResult>>}
  */
 export function getCertificate(domain: string, provider?: aws.Provider) {
@@ -559,7 +592,7 @@ export class Website extends pulumi.ComponentResource {
    * @param domain {string} website domain name
    * @param settings {*} optional overrides of website configuration
    * @param opts {pulumi.ComponentResourceOptions}
-   * @returns {WebSite}
+   * @returns {Website}
    */
   static create(
     domain: string,
@@ -590,11 +623,14 @@ export class Website extends pulumi.ComponentResource {
           website,
           domain,
           contentBucket,
-          settings.isPwa,
+          settings.isSPA ?? settings.isPwa,
           settings.assetsPaths,
           settings.assetsCachingLambdaArn,
           settings.securityHeadersLambdaArn,
           settings.edgeLambdas,
+          settings.cachePolicyId,
+          settings.originRequestPolicyId,
+          settings.responseHeadersPolicyId,
           settings.certificateProvider
         );
       }
@@ -661,7 +697,9 @@ export class Website extends pulumi.ComponentResource {
 }
 
 interface WebsiteSettings {
+  /** @deprecated Use `isSPA` instead */
   isPwa?: boolean;
+  isSPA?: boolean;
   bucket?: aws.s3.BucketArgs;
   cdn?: DisableSetting;
   dns?: DisableSetting;
@@ -670,6 +708,9 @@ interface WebsiteSettings {
   assetsCachingLambdaArn?: string | pulumi.Output<string>;
   securityHeadersLambdaArn?: string | pulumi.Output<string>;
   edgeLambdas?: EdgeLambdaAssociation[];
+  cachePolicyId?: string | pulumi.Output<string> | Promise<string>;
+  originRequestPolicyId?: Promise<string> | pulumi.Output<string> | string;
+  responseHeadersPolicyId?: Promise<string> | pulumi.Output<string> | string;
   certificateProvider?: aws.Provider;
 }
 
