@@ -13,6 +13,92 @@ const securityHeadersLambdaArn = websiteConfig.get(
   "security_headers_lambda_arn"
 );
 
+export const CloudFront = {
+  /** @see https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/using-managed-cache-policies.html */
+  ManagedCachePolicy: {
+    CachingOptimized: "658327ea-f89d-4fab-a63d-7e88639e58f6",
+    CachingOptimizedForUncompressedObjects:
+      "b2884449-e4de-46a7-ac36-70bc7f1ddd6d",
+    CachingDisabled: "4135ea2d-6df8-44a3-9df3-4b5a84be39ad",
+    ElementalMediaPackage: "08627262-05a9-4f76-9ded-b50ca2e3a84f",
+    Amplify: "2e54312d-136d-493c-8eb9-b001f22f67d2"
+  },
+  /** @see https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/using-managed-origin-request-policies.html */
+  ManagedOriginRequestPolicy: {
+    UserAgentRefererHeaders: "acba4595-bd28-49b8-b9fe-13317c0390fa",
+    CORSCustomOrigin: "59781a5b-3903-41f3-afcb-af62929ccde1",
+    CORSS3Origin: "88a5eaf4-2fd4-4709-b370-b4c650ea3fcf",
+    AllViewer: "216adef6-5c7f-47e4-b989-5492eafa07d3",
+    ElementalMediaTailorPersonalizedManifests:
+      "775133bc-15f2-49f9-abea-afb2e0bf67d2"
+  },
+  /** @see https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/using-managed-response-headers-policies.html */
+  ManagedResponseHeaderPolicy: {
+    SimpleCORS: "60669652-455b-4ae9-85a4-c4c02393f86c",
+    CORSWithPreflight: "5cc3b908-e619-4b99-88e5-2cf7f45965bd",
+    SecurityHeadersPolicy: "67f7725c-6f97-4210-82d7-5512b31e9d03",
+    CORSandSecurityHeadersPolicy: "e61eb60c-9c35-4d20-a928-2b84e02af89c",
+    CORSwithPreflightAndSecurityHeadersPolicy:
+      "eaab4381-ed33-4a86-88ca-d9558dc6cd63"
+  }
+};
+
+export function createCacheBoostingPolicy(
+  name,
+  { customName, cookiesConfig, headersConfig, queryStringsConfig }
+) {
+  return new aws.cloudfront.CachePolicy(name, {
+    name: customName ?? "CacheBoosting",
+    comment: "",
+    defaultTtl: 31536000,
+    maxTtl: 31536000,
+    minTtl: 31536000,
+    parametersInCacheKeyAndForwardedToOrigin: {
+      enableAcceptEncodingBrotli: true,
+      enableAcceptEncodingGzip: true,
+      cookiesConfig,
+      headersConfig,
+      queryStringsConfig
+    }
+  });
+}
+
+export function createSecurityHeadersAndPermissionsPolicy(
+  name,
+  { customName, corsConfig, etag, customHeaders = [] }
+) {
+  return new aws.cloudfront.ResponseHeadersPolicy(name, {
+    name: customName ?? "SecurityHeaders-and-PermissionsPolicy",
+    comment: "Security headers and Permission policy",
+    corsConfig,
+    customHeadersConfig: {
+      items: [
+        {
+          header: "Permissions-Policy",
+          value: "interest-cohort=()",
+          override: false
+        },
+        ...customHeaders
+      ]
+    },
+    etag,
+    securityHeadersConfig: {
+      contentTypeOptions: { override: true },
+      frameOptions: { frameOption: "SAMEORIGIN", override: false },
+      referrerPolicy: {
+        referrerPolicy: "strict-origin-when-cross-origin",
+        override: false
+      },
+      strictTransportSecurity: {
+        preload: true,
+        accessControlMaxAgeSec: 31536000,
+        override: false
+      },
+      xssProtection: { protection: true, modeBlock: true, override: false }
+    }
+  });
+}
+
 /**
  * Creates S3 bucket with static website hosting enabled
  * @param parent {pulumi.ComponentResource} parent component
@@ -88,30 +174,26 @@ function createBucketPolicy(
  * @param parent {pulumi.ComponentResource} parent component
  * @param domain {string} website domain name
  * @param contentBucket {aws.s3.Bucket}
- * @param isSPA {boolean} If `true` it will respond with `index.html` for on every request.
- * @param assetsPaths? {string[]} Array of paths that will be cache-boosted
- * @param assetsCachingLambdaArn? {string}
- * @param securityHeadersLambdaArn? {string}
- * @param edgeLambdas? {EdgeLambdaAssociation[]}
- * @param cachePolicyId? {Promise<string> | pulumi.Output<string> | string}
- * @param originRequestPolicyId? {Promise<string> | pulumi.Output<string> | string}
- * @param responseHeadersPolicyId? {Promise<string> | pulumi.Output<string> | string}
- * @param provider? {aws.Provider}
+ * @param args {CloudFrontArgs}
  * @returns {aws.cloudfront.Distribution}
  */
 function createCloudFront(
-  parent: ComponentResource,
+  parent: pulumi.ComponentResource,
   domain: string,
-  contentBucket: Bucket,
-  isSPA: boolean | undefined,
-  assetsPaths?: string[],
-  assetsCachingLambdaArn?: string | Output<string>,
-  securityHeadersLambdaArn?: string | Output<string>,
-  edgeLambdas?: EdgeLambdaAssociation[],
-  cachePolicyId?: Promise<string> | Output<string> | string,
-  originRequestPolicyId?: Promise<string> | Output<string> | string,
-  responseHeadersPolicyId?: Promise<string> | Output<string> | string,
-  provider?: aws.Provider
+  contentBucket: aws.s3.Bucket,
+  {
+    isSPA,
+    assetsPaths,
+    assetsCachePolicyId,
+    assetResponseHeadersPolicyId,
+    assetsCachingLambdaArn,
+    securityHeadersLambdaArn,
+    edgeLambdas,
+    cachePolicyId,
+    originRequestPolicyId,
+    responseHeadersPolicyId,
+    provider
+  }: CloudFrontArgs
 ) {
   const acmCertificate = getCertificate(domain, provider);
   const customErrorResponses: pulumi.Input<inputs.cloudfront.DistributionCustomErrorResponse>[] =
@@ -129,16 +211,20 @@ function createCloudFront(
     allowedMethods: ["GET", "HEAD", "OPTIONS"],
     cachedMethods: ["GET", "HEAD", "OPTIONS"],
     compress: true,
-    defaultTtl: 31536000,
-    forwardedValues: {
-      cookies: {
-        forward: "none"
-      },
-      headers: ["Origin"],
-      queryString: false
-    },
-    maxTtl: 31536000,
-    minTtl: 31536000,
+    cachePolicyId: assetsCachePolicyId,
+    responseHeadersPolicyId: assetResponseHeadersPolicyId,
+    defaultTtl: assetsCachePolicyId ? undefined : 31536000,
+    forwardedValues: assetsCachePolicyId
+      ? undefined
+      : {
+          cookies: {
+            forward: "none"
+          },
+          headers: ["Origin"],
+          queryString: false
+        },
+    maxTtl: assetsCachePolicyId ? undefined : 31536000,
+    minTtl: assetsCachePolicyId ? undefined : 31536000,
     pathPattern,
     targetOriginId: contentBucket.arn,
     viewerProtocolPolicy: "redirect-to-https",
@@ -619,20 +705,19 @@ export class Website extends pulumi.ComponentResource {
         contentBucket
       );
       if (!settings.cdn?.disabled) {
-        website.cdn = createCloudFront(
-          website,
-          domain,
-          contentBucket,
-          settings.isSPA ?? settings.isPwa,
-          settings.assetsPaths,
-          settings.assetsCachingLambdaArn,
-          settings.securityHeadersLambdaArn,
-          settings.edgeLambdas,
-          settings.cachePolicyId,
-          settings.originRequestPolicyId,
-          settings.responseHeadersPolicyId,
-          settings.certificateProvider
-        );
+        website.cdn = createCloudFront(website, domain, contentBucket, {
+          isSPA: settings.isSPA ?? settings.isPwa,
+          assetsPaths: settings.assetsPaths,
+          assetsCachePolicyId: settings.assetsCachePolicyId,
+          assetResponseHeadersPolicyId: settings.assetResponseHeadersPolicyId,
+          assetsCachingLambdaArn: settings.assetsCachingLambdaArn,
+          securityHeadersLambdaArn: settings.securityHeadersLambdaArn,
+          edgeLambdas: settings.edgeLambdas,
+          cachePolicyId: settings.cachePolicyId,
+          originRequestPolicyId: settings.originRequestPolicyId,
+          responseHeadersPolicyId: settings.responseHeadersPolicyId,
+          provider: settings.certificateProvider
+        });
       }
       if (!settings.dns?.disabled) {
         website.dnsRecords = createAliasRecords(
@@ -682,7 +767,13 @@ export class Website extends pulumi.ComponentResource {
         bucketSettings
       ));
       website.contentBucketPolicy = createBucketPolicy(website, domain, bucket);
-      website.cdn = createCloudFront(website, domain, bucket, false);
+      website.cdn = createCloudFront(website, domain, bucket, {
+        isSPA: false,
+        cachePolicyId: settings.cachePolicyId,
+        originRequestPolicyId: settings.originRequestPolicyId,
+        responseHeadersPolicyId: settings.responseHeadersPolicyId,
+        provider: settings.certificateProvider
+      });
       website.dnsRecords = createAliasRecords(
         website,
         domain,
@@ -696,6 +787,20 @@ export class Website extends pulumi.ComponentResource {
   }
 }
 
+interface CloudFrontArgs {
+  isSPA: boolean | undefined;
+  assetsPaths?: string[];
+  assetsCachePolicyId?: Promise<string> | Output<string> | string;
+  assetResponseHeadersPolicyId?: Promise<string> | Output<string> | string;
+  assetsCachingLambdaArn?: string | Output<string>;
+  securityHeadersLambdaArn?: string | Output<string>;
+  edgeLambdas?: EdgeLambdaAssociation[];
+  cachePolicyId?: Promise<string> | Output<string> | string;
+  originRequestPolicyId?: Promise<string> | Output<string> | string;
+  responseHeadersPolicyId?: Promise<string> | Output<string> | string;
+  provider?: aws.Provider;
+}
+
 interface WebsiteSettings {
   /** @deprecated Use `isSPA` instead */
   isPwa?: boolean;
@@ -705,6 +810,8 @@ interface WebsiteSettings {
   dns?: DisableSetting;
   "lh-token"?: string;
   assetsPaths?: string[];
+  assetsCachePolicyId?: Promise<string> | Output<string> | string;
+  assetResponseHeadersPolicyId?: Promise<string> | Output<string> | string;
   assetsCachingLambdaArn?: string | pulumi.Output<string>;
   securityHeadersLambdaArn?: string | pulumi.Output<string>;
   edgeLambdas?: EdgeLambdaAssociation[];
@@ -724,6 +831,9 @@ interface EdgeLambdaAssociation {
 
 interface RedirectWebsiteSettings {
   target: string;
+  cachePolicyId?: string | pulumi.Output<string> | Promise<string>;
+  originRequestPolicyId?: Promise<string> | pulumi.Output<string> | string;
+  responseHeadersPolicyId?: Promise<string> | pulumi.Output<string> | string;
   certificateProvider?: aws.Provider;
 }
 
