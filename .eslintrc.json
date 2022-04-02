@@ -1,17 +1,22 @@
 {
   "root": true,
+  "parser": "@typescript-eslint/parser",
+  "ecmaFeatures": {
+    "modules": true
+  },
   "env": {
-    "browser": true,
+    "browser": false,
     "es6": true,
     "node": true
   },
   "plugins": [
-    "es",
+    "@typescript-eslint",
     "prettier",
     "promise"
   ],
   "extends": [
     "prettier",
+    "plugin:@typescript-eslint/recommended",
     "plugin:promise/recommended"
   ],
   "rules": {

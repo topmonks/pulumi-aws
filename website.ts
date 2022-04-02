@@ -2,7 +2,6 @@ import * as aws from "@pulumi/aws";
 import * as pulumi from "@pulumi/pulumi";
 import * as inputs from "@pulumi/aws/types/input";
 import { Bucket } from "@pulumi/aws/s3";
-import { ComponentResource, Output } from "@pulumi/pulumi";
 
 const websiteConfig = new pulumi.Config("topmonks_website");
 const assetsPaths: string[] = JSON.parse(
@@ -207,7 +206,9 @@ function createCloudFront(
     });
   }
 
-  const assetsCacheBoost = pathPattern => ({
+  const assetsCacheBoost = (
+    pathPattern: string
+  ): aws.types.input.cloudfront.DistributionOrderedCacheBehavior => ({
     allowedMethods: ["GET", "HEAD", "OPTIONS"],
     cachedMethods: ["GET", "HEAD", "OPTIONS"],
     compress: true,
@@ -336,7 +337,7 @@ function createLambdaAssociation(
   },
   contentBucket: Bucket,
   securityHeadersLambdaArn: any
-) {
+): aws.types.input.cloudfront.DistributionOrderedCacheBehavior {
   const cacheBehavior = {
     pathPattern: pathPattern,
     allowedMethods: ["GET", "HEAD", "OPTIONS"],
@@ -372,7 +373,7 @@ function createLambdaAssociation(
  * Creates a new Route53 DNS record pointing the domain or the CloudFront distribution.
  * For CloudFront distribution ALIAS record is created. Otherwise, CNAME.
  * This allows to have naked domain websites.
- * @param parent {pulumi.ComponentResource} parent component
+ * @param parent {Website} parent component
  * @param domain {string} website domain name
  * @param cname {pulumi.Output<string>} aliased domain name
  * @param provider {aws.Provider}
@@ -493,13 +494,13 @@ export function getHostedZone(domain: string, provider?: aws.Provider) {
  * @param domain {string} website domain name
  * @param provider {aws.Provider}
  * @param options {{caaRecords: string[]}}
- * @returns {pulumi.Output<pulumi.Unwrap<aws.acm.GetCertificateResult>>}
+ * @returns {pulumi.Output<string>}
  */
 export function createCertificate(
   domain: string,
   provider?: aws.Provider,
   { caaRecords } = { caaRecords: [] }
-) {
+): pulumi.Output<string> {
   const parentDomain = getParentDomain(domain);
   const usEast1 =
     provider ??
@@ -790,14 +791,17 @@ export class Website extends pulumi.ComponentResource {
 interface CloudFrontArgs {
   isSPA: boolean | undefined;
   assetsPaths?: string[];
-  assetsCachePolicyId?: Promise<string> | Output<string> | string;
-  assetResponseHeadersPolicyId?: Promise<string> | Output<string> | string;
-  assetsCachingLambdaArn?: string | Output<string>;
-  securityHeadersLambdaArn?: string | Output<string>;
+  assetsCachePolicyId?: Promise<string> | pulumi.Output<string> | string;
+  assetResponseHeadersPolicyId?:
+    | Promise<string>
+    | pulumi.Output<string>
+    | string;
+  assetsCachingLambdaArn?: string | pulumi.Output<string>;
+  securityHeadersLambdaArn?: string | pulumi.Output<string>;
   edgeLambdas?: EdgeLambdaAssociation[];
-  cachePolicyId?: Promise<string> | Output<string> | string;
-  originRequestPolicyId?: Promise<string> | Output<string> | string;
-  responseHeadersPolicyId?: Promise<string> | Output<string> | string;
+  cachePolicyId?: Promise<string> | pulumi.Output<string> | string;
+  originRequestPolicyId?: Promise<string> | pulumi.Output<string> | string;
+  responseHeadersPolicyId?: Promise<string> | pulumi.Output<string> | string;
   provider?: aws.Provider;
 }
 
@@ -810,8 +814,11 @@ interface WebsiteSettings {
   dns?: DisableSetting;
   "lh-token"?: string;
   assetsPaths?: string[];
-  assetsCachePolicyId?: Promise<string> | Output<string> | string;
-  assetResponseHeadersPolicyId?: Promise<string> | Output<string> | string;
+  assetsCachePolicyId?: Promise<string> | pulumi.Output<string> | string;
+  assetResponseHeadersPolicyId?:
+    | Promise<string>
+    | pulumi.Output<string>
+    | string;
   assetsCachingLambdaArn?: string | pulumi.Output<string>;
   securityHeadersLambdaArn?: string | pulumi.Output<string>;
   edgeLambdas?: EdgeLambdaAssociation[];
