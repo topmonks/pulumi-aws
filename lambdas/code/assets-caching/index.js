@@ -1,7 +1,5 @@
-"use strict";
-
-exports.handler = function (event, context, callback) {
-  const response = event.Records[0].cf.response;
+export function handler(event) {
+  const { response } = event.Records[0].cf;
   const headers = response.headers;
 
   const addHeader = (headers, key, value) =>
@@ -9,5 +7,5 @@ exports.handler = function (event, context, callback) {
 
   addHeader(headers, "Cache-Control", "public, max-age=31536000, immutable");
 
-  callback(null, response);
-};
+  return response;
+}

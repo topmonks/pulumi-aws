@@ -31,7 +31,7 @@ export class AssetsCachingLambda extends pulumi.ComponentResource {
           role: role.arn,
           timeout: 5,
           handler: "index.handler",
-          runtime: aws.lambda.Runtime.NodeJS12dX,
+          runtime: aws.lambda.Runtime.NodeJS14dX,
           code: new pulumi.asset.AssetArchive({
             ".": new pulumi.asset.FileArchive(
               path.resolve(__dirname, "./assets-caching")
