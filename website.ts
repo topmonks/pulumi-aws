@@ -191,6 +191,8 @@ function createCloudFront(
     cachePolicyId,
     originRequestPolicyId,
     responseHeadersPolicyId,
+    extraOrigins,
+    extraCacheBehaviors,
     provider
   }: CloudFrontArgs
 ) {
@@ -248,30 +250,37 @@ function createCloudFront(
     );
   const assetsCacheBehaviors = assetsPaths?.map(assetsCacheBoost);
   const lambdaAssociationBehavior = edgeLambdas?.map(lambdaAssociation);
-  const orderedCacheBehaviors =
+  let orderedCacheBehaviors =
     assetsCacheBehaviors && lambdaAssociationBehavior
       ? assetsCacheBehaviors.concat(lambdaAssociationBehavior)
       : assetsCacheBehaviors ?? lambdaAssociationBehavior;
+  if (orderedCacheBehaviors && extraCacheBehaviors) {
+    orderedCacheBehaviors.push(...extraCacheBehaviors);
+  } else if (extraCacheBehaviors) {
+    orderedCacheBehaviors = extraCacheBehaviors;
+  }
 
+  const origins: aws.types.input.cloudfront.DistributionOrigin[] = [
+    {
+      originId: contentBucket.arn,
+      domainName: contentBucket.websiteEndpoint,
+      customOriginConfig: {
+        // Amazon S3 doesn't support HTTPS connections when using an S3 bucket configured as a website endpoint.
+        // https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/distribution-web-values-specify.html#DownloadDistValuesOriginProtocolPolicy
+        originProtocolPolicy: "http-only",
+        httpPort: 80,
+        httpsPort: 443,
+        originSslProtocols: ["TLSv1.2"]
+      }
+    }
+  ];
+  if (extraOrigins) origins.push(...extraOrigins);
   return new aws.cloudfront.Distribution(
     `${domain}/cdn-distribution`,
     {
       enabled: true,
       aliases: [domain],
-      origins: [
-        {
-          originId: contentBucket.arn,
-          domainName: contentBucket.websiteEndpoint,
-          customOriginConfig: {
-            // Amazon S3 doesn't support HTTPS connections when using an S3 bucket configured as a website endpoint.
-            // https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/distribution-web-values-specify.html#DownloadDistValuesOriginProtocolPolicy
-            originProtocolPolicy: "http-only",
-            httpPort: 80,
-            httpsPort: 443,
-            originSslProtocols: ["TLSv1.2"]
-          }
-        }
-      ],
+      origins,
       customErrorResponses,
       defaultRootObject: "index.html",
       defaultCacheBehavior: {
@@ -336,7 +345,7 @@ function createLambdaAssociation(
     eventType: string;
   },
   contentBucket: Bucket,
-  securityHeadersLambdaArn: any
+  securityHeadersLambdaArn: string | pulumi.Output<string>
 ): aws.types.input.cloudfront.DistributionOrderedCacheBehavior {
   const cacheBehavior = {
     pathPattern: pathPattern,
@@ -596,13 +605,13 @@ export function getCertificate(domain: string, provider?: aws.Provider) {
 }
 
 function getParentDomain(domain: string) {
-  const parentDomain = getDomainAndSubdomain(domain).parentDomain;
-  return parentDomain.substr(0, parentDomain.length - 1);
+  const { parentDomain } = getDomainAndSubdomain(domain);
+  return parentDomain.slice(0, -1);
 }
 
 function getRootDomain(domain: string) {
-  const rootDomain = getDomainAndSubdomain(domain).rootDomain;
-  return rootDomain.substr(0, rootDomain.length - 1);
+  const { rootDomain } = getDomainAndSubdomain(domain);
+  return rootDomain.slice(0, -1);
 }
 
 /**
@@ -717,6 +726,8 @@ export class Website extends pulumi.ComponentResource {
           cachePolicyId: settings.cachePolicyId,
           originRequestPolicyId: settings.originRequestPolicyId,
           responseHeadersPolicyId: settings.responseHeadersPolicyId,
+          extraOrigins: settings.extraOrigins,
+          extraCacheBehaviors: settings.extraCacheBehaviors,
           provider: settings.certificateProvider
         });
       }
@@ -802,6 +813,8 @@ interface CloudFrontArgs {
   cachePolicyId?: Promise<string> | pulumi.Output<string> | string;
   originRequestPolicyId?: Promise<string> | pulumi.Output<string> | string;
   responseHeadersPolicyId?: Promise<string> | pulumi.Output<string> | string;
+  extraOrigins?: aws.types.input.cloudfront.DistributionOrigin[];
+  extraCacheBehaviors?: aws.types.input.cloudfront.DistributionOrderedCacheBehavior[];
   provider?: aws.Provider;
 }
 
@@ -825,6 +838,8 @@ interface WebsiteSettings {
   cachePolicyId?: string | pulumi.Output<string> | Promise<string>;
   originRequestPolicyId?: Promise<string> | pulumi.Output<string> | string;
   responseHeadersPolicyId?: Promise<string> | pulumi.Output<string> | string;
+  extraOrigins?: aws.types.input.cloudfront.DistributionOrigin[];
+  extraCacheBehaviors?: aws.types.input.cloudfront.DistributionOrderedCacheBehavior[];
   certificateProvider?: aws.Provider;
 }
 
