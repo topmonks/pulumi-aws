@@ -44,7 +44,12 @@ export const CloudFront = {
 
 export function createCacheBoostingPolicy(
   name,
-  { customName, cookiesConfig, headersConfig, queryStringsConfig }
+  {
+    customName,
+    cookiesConfig,
+    headersConfig,
+    queryStringsConfig
+  }: CacheBoostingPolicyArgs
 ) {
   return new aws.cloudfront.CachePolicy(name, {
     name: customName ?? "CacheBoosting",
@@ -64,7 +69,12 @@ export function createCacheBoostingPolicy(
 
 export function createSecurityHeadersAndPermissionsPolicy(
   name,
-  { customName, corsConfig, etag, customHeaders = [] }
+  {
+    customName,
+    corsConfig,
+    etag,
+    customHeaders = []
+  }: SecurityHeadersPolicyArgs
 ) {
   return new aws.cloudfront.ResponseHeadersPolicy(name, {
     name: customName ?? "SecurityHeaders-and-PermissionsPolicy",
@@ -799,7 +809,7 @@ export class Website extends pulumi.ComponentResource {
   }
 }
 
-interface CloudFrontArgs {
+export interface CloudFrontArgs {
   isSPA: boolean | undefined;
   assetsPaths?: string[];
   assetsCachePolicyId?: Promise<string> | pulumi.Output<string> | string;
@@ -813,12 +823,12 @@ interface CloudFrontArgs {
   cachePolicyId?: Promise<string> | pulumi.Output<string> | string;
   originRequestPolicyId?: Promise<string> | pulumi.Output<string> | string;
   responseHeadersPolicyId?: Promise<string> | pulumi.Output<string> | string;
-  extraOrigins?: aws.types.input.cloudfront.DistributionOrigin[];
-  extraCacheBehaviors?: aws.types.input.cloudfront.DistributionOrderedCacheBehavior[];
+  extraOrigins?: inputs.cloudfront.DistributionOrigin[];
+  extraCacheBehaviors?: inputs.cloudfront.DistributionOrderedCacheBehavior[];
   provider?: aws.Provider;
 }
 
-interface WebsiteSettings {
+export interface WebsiteSettings {
   /** @deprecated Use `isSPA` instead */
   isPwa?: boolean;
   isSPA?: boolean;
@@ -838,12 +848,12 @@ interface WebsiteSettings {
   cachePolicyId?: string | pulumi.Output<string> | Promise<string>;
   originRequestPolicyId?: Promise<string> | pulumi.Output<string> | string;
   responseHeadersPolicyId?: Promise<string> | pulumi.Output<string> | string;
-  extraOrigins?: aws.types.input.cloudfront.DistributionOrigin[];
-  extraCacheBehaviors?: aws.types.input.cloudfront.DistributionOrderedCacheBehavior[];
+  extraOrigins?: inputs.cloudfront.DistributionOrigin[];
+  extraCacheBehaviors?: inputs.cloudfront.DistributionOrderedCacheBehavior[];
   certificateProvider?: aws.Provider;
 }
 
-interface EdgeLambdaAssociation {
+export interface EdgeLambdaAssociation {
   pathPattern: string;
   lambdaAssociation: {
     lambdaArn: string | pulumi.Output<string>;
@@ -851,7 +861,7 @@ interface EdgeLambdaAssociation {
   };
 }
 
-interface RedirectWebsiteSettings {
+export interface RedirectWebsiteSettings {
   target: string;
   cachePolicyId?: string | pulumi.Output<string> | Promise<string>;
   originRequestPolicyId?: Promise<string> | pulumi.Output<string> | string;
@@ -859,6 +869,20 @@ interface RedirectWebsiteSettings {
   certificateProvider?: aws.Provider;
 }
 
-interface DisableSetting {
+export interface DisableSetting {
   disabled: boolean;
+}
+
+export interface CacheBoostingPolicyArgs {
+  customName?: string;
+  cookiesConfig: inputs.cloudfront.CachePolicyParametersInCacheKeyAndForwardedToOriginCookiesConfig;
+  headersConfig: inputs.cloudfront.CachePolicyParametersInCacheKeyAndForwardedToOriginHeadersConfig;
+  queryStringsConfig: inputs.cloudfront.CachePolicyParametersInCacheKeyAndForwardedToOriginQueryStringsConfig;
+}
+
+export interface SecurityHeadersPolicyArgs {
+  customName?: string;
+  corsConfig?: inputs.cloudfront.ResponseHeadersPolicyCorsConfig;
+  etag?: string;
+  customHeaders?: inputs.cloudfront.ResponseHeadersPolicyCustomHeadersConfigItem[];
 }
