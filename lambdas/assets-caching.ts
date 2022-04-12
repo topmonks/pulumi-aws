@@ -3,6 +3,7 @@ import * as pulumi from "@pulumi/pulumi";
 import { createRole } from "./edge-role";
 import * as path from "path";
 
+/** @deprecated Use CachePolicy instead */
 export class AssetsCachingLambda extends pulumi.ComponentResource {
   private lambda: aws.lambda.Function;
 

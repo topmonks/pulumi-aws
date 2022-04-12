@@ -3,6 +3,7 @@ import * as pulumi from "@pulumi/pulumi";
 import { createRole } from "./edge-role";
 import * as path from "path";
 
+/** @deprecated Use SecurityHeadersPolicy */
 export class SecurityHeadersLambda extends pulumi.ComponentResource {
   private lambda: aws.lambda.Function;
 
