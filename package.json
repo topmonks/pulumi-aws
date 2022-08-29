@@ -15,7 +15,7 @@
     "@pulumi/pulumi": ">=3.20.0"
   },
   "devDependencies": {
-    "@pulumi/aws": "5.1.0",
+    "@pulumi/aws": "5.13.0",
     "@pulumi/awsx": "0.40.0",
     "@pulumi/pulumi": "3.28.0",
     "@types/node": "16.9.6",
