@@ -339,6 +339,7 @@ function createCloudFront(
         sslSupportMethod: "sni-only",
         minimumProtocolVersion: "TLSv1.2_2021"
       },
+      httpVersion: "http2and3",
       isIpv6Enabled: true
     },
     {
