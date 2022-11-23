@@ -28,7 +28,6 @@ const taggableResourceTypes = [
   "aws:appmesh/virtualService:VirtualService",
   "aws:appsync/graphQLApi:GraphQLApi",
   "aws:athena/workgroup:Workgroup",
-  "aws:autoscaling/group:Group",
   "aws:backup/plan:Plan",
   "aws:backup/vault:Vault",
   "aws:cfg/aggregateAuthorization:AggregateAuthorization",
