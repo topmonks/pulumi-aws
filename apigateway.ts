@@ -1,8 +1,8 @@
 import { Output, interpolate, Config } from "@pulumi/pulumi";
 import * as aws from "@pulumi/aws";
-import * as awsx from "@pulumi/awsx";
-import { Parameter } from "@pulumi/awsx/apigateway/requestValidator";
-import { LambdaAuthorizer } from "@pulumi/awsx/apigateway/lambdaAuthorizer";
+import * as awsx from "@pulumi/awsx/classic";
+import { Parameter } from "@pulumi/awsx/classic/apigateway/requestValidator";
+import { LambdaAuthorizer } from "@pulumi/awsx/classic/apigateway/lambdaAuthorizer";
 import { ComponentResource, ResourceOptions } from "@pulumi/pulumi";
 import { getCertificate, getHostedZone } from "./website";
 
