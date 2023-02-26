@@ -1,0 +1,4 @@
+{
+  "backend.maxHeapSizeMb": 2048,
+  "toolchains": [{"name": "JavaScript", "path": "."}]
+}
