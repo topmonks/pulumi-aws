@@ -236,7 +236,16 @@ function corsRoute({ path, cors }: ApiRoute): awsx.apigateway.Route {
   return {
     path,
     method: "OPTIONS",
-    eventHandler: createCorsHandler(cors)
+    eventHandler: new aws.lambda.CallbackFunction(
+      `${path.replace(/\//g, "")}-options`,
+      {
+        memorySize: 128,
+        timeout: 15,
+        runtime: "nodejs18.x",
+        architectures: ["arm64"],
+        callback: createCorsHandler(cors)
+      }
+    )
   };
 }
 
