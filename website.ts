@@ -203,7 +203,8 @@ function createCloudFront(
     responseHeadersPolicyId,
     extraOrigins,
     extraCacheBehaviors,
-    provider
+    provider,
+    webAcl
   }: CloudFrontArgs
 ) {
   const acmCertificate = getCertificate(domain, provider);
@@ -339,11 +340,12 @@ function createCloudFront(
         sslSupportMethod: "sni-only",
         minimumProtocolVersion: "TLSv1.2_2021"
       },
-      isIpv6Enabled: true
+      isIpv6Enabled: true,
+      webAclId: webAcl?.id
     },
     {
       parent,
-      dependsOn: [contentBucket]
+      dependsOn: [contentBucket, webAcl]
     }
   );
 }
@@ -764,7 +766,8 @@ export class Website extends pulumi.ComponentResource {
           responseHeadersPolicyId: settings.responseHeadersPolicyId,
           extraOrigins: settings.extraOrigins,
           extraCacheBehaviors: settings.extraCacheBehaviors,
-          provider: settings.certificateProvider
+          provider: settings.certificateProvider,
+          webAcl: settings.webAcl
         });
       }
       if (!settings.dns?.disabled) {
@@ -852,6 +855,7 @@ export interface CloudFrontArgs {
   extraOrigins?: inputs.cloudfront.DistributionOrigin[];
   extraCacheBehaviors?: inputs.cloudfront.DistributionOrderedCacheBehavior[];
   provider?: aws.Provider;
+  webAcl?: aws.waf.WebAcl;
 }
 
 export interface WebsiteSettings {
@@ -877,6 +881,7 @@ export interface WebsiteSettings {
   extraOrigins?: inputs.cloudfront.DistributionOrigin[];
   extraCacheBehaviors?: inputs.cloudfront.DistributionOrderedCacheBehavior[];
   certificateProvider?: aws.Provider;
+  webAcl?: aws.waf.WebAcl;
 }
 
 export interface EdgeLambdaAssociation {
