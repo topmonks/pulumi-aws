@@ -14,7 +14,7 @@ export class Api extends ComponentResource {
   get openApiUrl() {
     const restApiId = this.gateway.restAPI.id;
     const stageName = this.gateway.stage.stageName;
-    const region = awsConfig.get("region");
+    const region = awsConfig.require("region");
     return interpolate`https://apigateway.${region}.amazonaws.com/restapis/${restApiId}/stages/${stageName}/exports/oas30`;
   }
 
