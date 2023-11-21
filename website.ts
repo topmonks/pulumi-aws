@@ -129,7 +129,6 @@ function createBucket(
     {
       bucket: domain,
       acl: "public-read",
-      website,
       corsRules: [
         {
           allowedHeaders: ["*"],
@@ -137,7 +136,9 @@ function createBucket(
           allowedOrigins: ["*"]
         }
       ],
-      forceDestroy: true
+      forceDestroy: true,
+      ...settings,
+      website
     },
     { parent }
   );
