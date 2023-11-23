@@ -124,7 +124,7 @@ function createBucket(
     indexDocument: "index.html",
     errorDocument: "404.html"
   };
-  return new aws.s3.Bucket(
+  const bucket = new aws.s3.Bucket(
     `${domain}/bucket`,
     {
       bucket: domain,
@@ -142,6 +142,21 @@ function createBucket(
     },
     { parent }
   );
+  new aws.s3.BucketOwnershipControls(`${domain}/bucket-ownership-controls`, {
+    bucket: bucket.id,
+    rule: {
+      objectOwnership: "ObjectWriter"
+    }
+  });
+  new aws.s3.BucketPublicAccessBlock(`${domain}-bucket-pab`, {
+    bucket: bucket.id,
+    blockPublicAcls: false,
+    blockPublicPolicy: false,
+    ignorePublicAcls: false,
+    restrictPublicBuckets: false
+  });
+
+  return bucket;
 }
 
 /**
