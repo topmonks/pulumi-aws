@@ -1,6 +1,6 @@
 {
   "name": "@topmonks/pulumi-aws",
-  "version": "3.1.3",
+  "version": "3.1.4",
   "description": "Custom AWS Resources for Pulumi",
   "keywords": [
     "pulumi",
@@ -31,7 +31,7 @@
   },
   "scripts": {
     "build": "tsc",
-    "package": "yarn run build && cp -R lambdas/code/* bin/lambdas",
+    "package": "rm -rf bin/ && yarn run build && touch bin/yarn.lock && cp package.json bin/ && cp -R lambdas/code/* bin/lambdas",
     "install-peers": "install-peers"
   },
   "pulumi": {

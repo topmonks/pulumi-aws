@@ -128,7 +128,6 @@ function createBucket(
     `${domain}/bucket`,
     {
       bucket: domain,
-      acl: "public-read",
       corsRules: [
         {
           allowedHeaders: ["*"],
@@ -142,12 +141,6 @@ function createBucket(
     },
     { parent }
   );
-  new aws.s3.BucketOwnershipControls(`${domain}/bucket-ownership-controls`, {
-    bucket: bucket.id,
-    rule: {
-      objectOwnership: "ObjectWriter"
-    }
-  });
   new aws.s3.BucketPublicAccessBlock(`${domain}-bucket-pab`, {
     bucket: bucket.id,
     blockPublicAcls: false,
@@ -179,7 +172,7 @@ function createBucketPolicy(
         Version: "2012-10-17",
         Statement: [
           {
-            Sid: "1",
+            Sid: "PublicReadGetObject",
             Effect: "Allow",
             Principal: {
               AWS: "*"
